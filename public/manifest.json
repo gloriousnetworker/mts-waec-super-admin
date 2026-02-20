@@ -1,15 +1,15 @@
 {
-  "name": "WAEC CBT Admin - School Management Dashboard",
-  "short_name": "WAEC Admin",
-  "description": "Manage students, track performance and monitor exams for WAEC CBT Simulator",
-  "theme_color": "#2563EB",
+  "name": "Mega Tech WAEC CBT - Super Admin Dashboard",
+  "short_name": "Mega Tech Super",
+  "description": "Manage schools, admins and generate reports for Kogi State Ministry of Education",
+  "theme_color": "#7C3AED",
   "background_color": "#ffffff",
   "display": "standalone",
   "orientation": "portrait",
   "scope": "/",
   "start_url": "/",
   "id": "/",
-  "categories": ["education", "productivity", "business"],
+  "categories": ["education", "business", "analytics"],
   "lang": "en",
   "dir": "ltr",
   "prefer_related_applications": false,
@@ -71,40 +71,47 @@
   ],
   "screenshots": [
     {
-      "src": "/screenshots/admin-desktop.png",
+      "src": "/screenshots/superadmin-desktop.png",
       "sizes": "1280x720",
       "type": "image/png",
       "platform": "wide",
-      "label": "Desktop view of WAEC CBT Admin Dashboard"
+      "label": "Desktop view of Mega Tech Super Admin Dashboard"
     },
     {
-      "src": "/screenshots/admin-mobile.png",
+      "src": "/screenshots/superadmin-mobile.png",
       "sizes": "750x1334",
       "type": "image/png",
       "platform": "narrow",
-      "label": "Mobile view of WAEC CBT Admin Dashboard"
+      "label": "Mobile view of Mega Tech Super Admin Dashboard"
     }
   ],
   "shortcuts": [
     {
-      "name": "Student Management",
-      "short_name": "Students",
-      "description": "Register and manage students",
-      "url": "/dashboard/students",
+      "name": "Schools Management",
+      "short_name": "Schools",
+      "description": "Manage all registered schools",
+      "url": "/superadmin/dashboard/schools",
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     },
     {
-      "name": "View Results",
-      "short_name": "Results",
-      "description": "Check student exam results",
-      "url": "/dashboard/results",
+      "name": "Admins Management",
+      "short_name": "Admins",
+      "description": "Manage school administrators",
+      "url": "/superadmin/dashboard/admins",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Generate Reports",
+      "short_name": "Reports",
+      "description": "Generate ministry reports",
+      "url": "/superadmin/dashboard/reports",
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     },
     {
       "name": "Support Tickets",
       "short_name": "Support",
       "description": "Manage support tickets",
-      "url": "/dashboard/support",
+      "url": "/superadmin/dashboard/support",
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     }
   ]
