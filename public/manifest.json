@@ -1,15 +1,15 @@
 {
-  "name": "WAEC CBT Simulator - Exam Practice",
-  "short_name": "WAEC CBT",
-  "description": "Practice WAEC Computer Based Test (CBT) exams offline",
-  "theme_color": "#039994",
+  "name": "WAEC CBT Admin - School Management Dashboard",
+  "short_name": "WAEC Admin",
+  "description": "Manage students, track performance and monitor exams for WAEC CBT Simulator",
+  "theme_color": "#2563EB",
   "background_color": "#ffffff",
   "display": "standalone",
   "orientation": "portrait",
   "scope": "/",
   "start_url": "/",
   "id": "/",
-  "categories": ["education", "productivity"],
+  "categories": ["education", "productivity", "business"],
   "lang": "en",
   "dir": "ltr",
   "prefer_related_applications": false,
@@ -71,33 +71,40 @@
   ],
   "screenshots": [
     {
-      "src": "/screenshots/desktop.png",
+      "src": "/screenshots/admin-desktop.png",
       "sizes": "1280x720",
       "type": "image/png",
       "platform": "wide",
-      "label": "Desktop view of WAEC CBT Simulator"
+      "label": "Desktop view of WAEC CBT Admin Dashboard"
     },
     {
-      "src": "/screenshots/mobile.png",
+      "src": "/screenshots/admin-mobile.png",
       "sizes": "750x1334",
       "type": "image/png",
       "platform": "narrow",
-      "label": "Mobile view of WAEC CBT Simulator"
+      "label": "Mobile view of WAEC CBT Admin Dashboard"
     }
   ],
   "shortcuts": [
     {
-      "name": "Start Practice Test",
-      "short_name": "Practice",
-      "description": "Start a new practice exam",
-      "url": "/dashboard/exams",
+      "name": "Student Management",
+      "short_name": "Students",
+      "description": "Register and manage students",
+      "url": "/dashboard/students",
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     },
     {
       "name": "View Results",
       "short_name": "Results",
-      "description": "Check your exam results",
-      "url": "/dashboard/performance",
+      "description": "Check student exam results",
+      "url": "/dashboard/results",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Support Tickets",
+      "short_name": "Support",
+      "description": "Manage support tickets",
+      "url": "/dashboard/support",
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     }
   ]
