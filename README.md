@@ -1,45 +1,72 @@
-NYSC CDS Attendance Portal
+Mega Tech Solutions - Super Admin Dashboard
 
-A comprehensive digital attendance management system for National Youth Service Corps (NYSC) Community Development Service (CDS) groups in Nigeria.
-Live Demo
+A comprehensive super administration dashboard for managing schools, administrators, and students across the WAEC CBT simulation platform for Kogi State Ministry of Education.
 
-🌐 Live Application: https://nysc-corpers-cds-attendance-app.vercel.app/
+Live Demo: https://mts-waec-super-admin.vercel.app/
 Features
 🎯 Core Features
 
-    Digital Attendance Tracking: Mark and monitor CDS attendance digitally
+    School Management: Register and manage all schools in the system
 
-    User Authentication: Secure login/signup for corps members
+    Admin Management: Create and manage school administrators
 
-    Profile Management: Complete NYSC profile with all required details
+    Student Overview: View all students across the state
 
-    Attendance Calendar: Visual monthly calendar with attendance status
+    Report Generation: Generate comprehensive reports for the Ministry of Education
 
-    CDS Dues Management: Track and pay CDS group dues
+    Support Tickets: Manage and respond to school admin support requests
 
-    Schedule Management: View upcoming CDS activities and meetings
+    Advanced Analytics: State-wide performance metrics and insights
 
-    Reports Generation: Generate attendance and performance reports
+📊 Administrative Features
 
-    Multi-step Registration: User-friendly 3-step signup process with email verification
+    School Registration: Add new schools with complete details
 
-📱 User Features
+    Admin Creation: Create admin accounts for schools with default password 123456
 
-    Dashboard Overview: Quick stats and recent activities
+    Subscription Management: Track admin subscriptions (Monthly, Termly, Yearly, Unlimited)
 
-    Attendance History: Complete attendance record with visual indicators
+    Expiry Tracking: Automatic account deactivation on subscription expiry
 
-    Profile Customization: Update personal and NYSC information
+    Golden Badge: Special indicator for Unlimited Version admins
 
-    Payment Integration: Manage CDS dues payments
+    Revenue Tracking: Monitor subscription payments and total revenue
 
-    Calendar Integration: Sync CDS schedule with personal calendar
+    Report Generation: Export reports in CSV/JSON formats
 
-    Report Export: Download reports in PDF, Excel, and CSV formats
+    Support Ticket System: Respond to admin inquiries with chat functionality
 
-    Notification System: Email, SMS, and push notifications
+    Performance Analytics: State-wide performance dashboards
 
-    Responsive Design: Works on desktop, tablet, and mobile devices
+📊 Subscription Plans
+
+    Monthly: ₦15,000 - 30 days access
+
+    Termly: ₦42,000 - 120 days access
+
+    Yearly: ₦120,000 - 365 days access
+
+    Unlimited: ₦500,000 - Lifetime access with golden badge
+
+📱 Dashboard Sections
+
+    Home: State-wide statistics and quick actions
+
+    Schools: Complete school management
+
+    Admins: Admin account management with subscriptions
+
+    Students: View all students across the state
+
+    Reports: Generate and download reports
+
+    Support: Support ticket management
+
+    Analytics: Advanced performance analytics
+
+    Settings: System configuration
+
+    Help: Resources and documentation
 
 Tech Stack
 Frontend
@@ -48,11 +75,9 @@ Frontend
 
     React - UI library
 
+    Framer Motion - Animation library
+
     Tailwind CSS - Utility-first CSS framework
-
-    GSAP - Animation library for smooth transitions
-
-    Font Awesome - Icons
 
 Key Dependencies
 
@@ -60,13 +85,11 @@ Key Dependencies
 
     react: ^18.0.0
 
-    react-dom: ^18.0.0
+    framer-motion: ^10.0.0
 
-    gsap: ^3.12.0
+    react-hot-toast: ^2.4.0
 
     next/image: Built-in image optimization
-
-    next/link: Client-side navigation
 
 Installation
 Prerequisites
@@ -78,22 +101,19 @@ Prerequisites
 Setup Instructions
 
     Clone the repository
+    bash
 
-bash
+git clone https://github.com/yourusername/mts-waec-super-admin.git
+cd mts-waec-super-admin
 
-git clone https://github.com/gloriousnetworker/nysc-corpers-cds-attendance-app.git
-cd nysc-attendance-app
-
-    Install dependencies
-
+Install dependencies
 bash
 
 npm install
 # or
 yarn install
 
-    Run the development server
-
+Run the development server
 bash
 
 npm run dev
@@ -106,301 +126,314 @@ yarn dev
 Project Structure
 text
 
-nysc-attendance-app/
+mts-waec-super-admin/
 ├── app/
-│   ├── login/              # Login page
-│   ├── signup/            # Signup page (3-step process)
-│   ├── corpers-dashboard/ # Main dashboard
-│   └── page.jsx           # Landing page
+│   ├── superadmin/
+│   │   ├── layout.jsx           # Super admin layout
+│   │   ├── page.jsx             # Landing page with splash
+│   │   ├── login/               # Super admin login
+│   │   └── dashboard/            # Super admin dashboard
+│   │       └── page.jsx         # Main dashboard
 ├── components/
-│   ├── dashboard/         # Dashboard components
-│   │   ├── DashboardNavbar.jsx
-│   │   ├── DashboardSidebar.jsx
-│   │   ├── DashboardContent.jsx
-│   │   └── sections/      # Dashboard sections
-│   │       ├── OverviewSection.jsx
-│   │       ├── AttendanceSection.jsx
-│   │       ├── ProfileSection.jsx
-│   │       ├── DuesSection.jsx
-│   │       ├── ScheduleSection.jsx
-│   │       ├── ReportsSection.jsx
-│   │       ├── SettingsSection.jsx
-│   │       └── HelpSection.jsx
-│   ├── Navbar.jsx         # Main navigation
-│   └── Footer.jsx         # Site footer
+│   ├── superadmin/
+│   │   ├── Navbar.jsx           # Super admin navigation
+│   │   ├── Sidebar.jsx          # Super admin sidebar
+│   │   ├── Home.jsx             # Dashboard home
+│   │   ├── Schools.jsx          # Schools management
+│   │   ├── Admins.jsx           # Admins management with subscriptions
+│   │   ├── Students.jsx         # Students overview
+│   │   ├── Reports.jsx          # Report generation
+│   │   ├── Support.jsx          # Support ticket management
+│   │   ├── Analytics.jsx        # Advanced analytics
+│   │   ├── Settings.jsx         # System settings
+│   │   ├── Help.jsx             # Help resources
+│   │   └── SuperAdminChat.jsx   # Support chat
+│   ├── SplashScreen.jsx         # App loading screen
+│   └── ProtectedRoute.jsx       # Route protection HOC
+├── context/
+│   └── AuthContext.jsx          # Authentication context
 ├── public/
-│   ├── images/            # Static images
-│   │   └── nysc-logo.png  # NYSC logo
-│   └── videos/            # Video files
-├── styles/               # Global styles
+│   ├── icons/                   # PWA icons
+│   ├── logo.png                 # Mega Tech logo
+│   └── manifest.json            # PWA manifest
+├── styles/
+│   ├── globals.css              # Global styles
+│   └── styles.js                # Component styles
 └── package.json
 
 Usage Guide
-For Corps Members
+For Super Administrators
+Getting Started
 
-    Registration
+    Access the App
 
-        Visit the signup page
+        Visit the live URL or open locally
 
-        Complete 3-step registration process:
-
-            Step 1: Basic information (name, email, phone)
-
-            Step 2: NYSC details (state code, serving state, CDS group)
-
-            Step 3: Email verification
-
-        Verify email with 6-digit code
+        Splash screen appears with loading progress
 
     Login
 
-        Use email/state code and password
+        Use credentials provided by Mega Tech Solutions
 
-        Demo login available for quick testing
+        Demo credentials available:
 
-    Dashboard Navigation
+            Email: admin@megatechsolutions.org
 
-        Overview: View stats and quick actions
+            Password: megatech2024
 
-        Attendance: Mark and view attendance
+School Management
 
-        Profile: Update personal information
+    Register a New School
 
-        CDS Dues: Manage payments
+        Navigate to Schools section
 
-        Schedule: View upcoming activities
+        Click "Add New School"
 
-        Reports: Generate attendance reports
+        Fill in school details (name, address, contact)
 
-        Settings: Configure preferences
+        School added to system
 
-        Help: Access support resources
+    View Schools
 
-    Marking Attendance
+        List of all registered schools
 
-        Navigate to Attendance section
+        Filter by status (active/inactive)
 
-        Click "Mark Today's Attendance"
+        View number of admins and students per school
 
-        Attendance recorded instantly
+Admin Management
 
-For Administrators
+    Create New Admin
 
-(Note: Admin features to be implemented)
+        Navigate to Admins section
 
-    Monitor attendance across CDS groups
+        Click "Add New Admin"
 
-    Generate group reports
+        Fill in admin details:
 
-    Manage user accounts
+            Name, Email, Phone (required)
 
-    Configure system settings
+            Select school
 
-Features in Detail
-🎨 Landing Page
+            Choose role (Admin, Vice Principal, Principal)
 
-    Engaging hero section with NYSC video
+            Set permissions
 
-    Information about NYSC and CDS
+            Select subscription plan
 
-    Call-to-action buttons for login/signup
+        Default password: 123456
 
-    Responsive design with smooth animations
+        Admin receives login credentials
 
-🔐 Authentication System
+    Subscription Management
 
-    Secure login with email/state code
+        Each admin has subscription details:
 
-    3-step signup with verification
+            Plan (Monthly, Termly, Yearly, Unlimited)
 
-    Password protection
+            Status (Active, Expired)
 
-    Session management with localStorage
+            Start and expiry dates
 
-📊 Dashboard Features
+            Amount paid
 
-    Real-time Stats: Attendance rate, days present, total days
+            Payment method
 
-    Interactive Calendar: Visual attendance tracking
+        Auto-deactivation: Expired accounts automatically deactivated
 
-    Profile Management: Full CRUD operations for user data
+        Reactivate: Click reactivate button for expired admins
 
-    Payment System: Track and pay CDS dues
+        Golden Badge: Unlimited version admins get 🌟 badge
 
-    Schedule View: Upcoming CDS activities
+    Track Subscriptions
 
-    Report Generation: Customizable reports in multiple formats
+        View subscription statistics on dashboard
 
-    Settings: Customizable preferences and privacy controls
+        Filter admins by plan type
 
-📱 Mobile Responsive
+        Monitor days remaining for active subscriptions
 
-    Fully responsive design
+        Track total revenue from all admins
 
-    Mobile-optimized navigation
+Report Generation
 
-    Touch-friendly interface
+    Generate Reports
 
-    Progressive Web App capabilities
+        Navigate to Reports section
 
-API Endpoints
+        Select report type:
 
-(Note: Current implementation uses localStorage for demo. Backend integration pending)
-Planned Endpoints
-text
+            School Report
 
-POST   /api/auth/login          # User login
-POST   /api/auth/signup         # User registration
-POST   /api/auth/verify         # Email verification
-GET    /api/user/profile        # Get user profile
-PUT    /api/user/profile        # Update profile
-POST   /api/attendance/mark     # Mark attendance
-GET    /api/attendance          # Get attendance records
-POST   /api/payments            # Process payment
-GET    /api/reports             # Generate reports
+            Student Report
 
-Environment Variables
+            Performance Report
 
-Create a .env.local file in the root directory:
-env
+            Ministry Report
 
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_API_URL=http://localhost:3000/api
-# Add more variables as needed for production
+            Admin Report
 
-Deployment
-Vercel Deployment
+            Exam Report
 
-    Push code to GitHub repository
+        Choose date range
 
-    Import project in Vercel dashboard
+        Select format (CSV, JSON)
 
-    Configure build settings:
+        Click "Generate Report"
 
-        Build Command: npm run build
+        Report downloads automatically
 
-        Output Directory: .next
+    Report Contents
 
-    Deploy
+        School reports: School names, student counts, admin counts, pass rates
 
-Other Platforms
+        Ministry reports: LGA breakdown with statistics
 
-The app can be deployed on any platform supporting Next.js:
+        Performance reports: State-wide metrics
 
-    Netlify
+Support Ticket System
 
-    AWS Amplify
+    View Tickets
 
-    Railway
+        Navigate to Support section
 
-    Heroku
+        Tickets displayed with status (open, in-progress, closed)
 
-Testing
+        Filter by status or search by ID/school
+
+        View priority levels (high, medium, low)
+
+    Respond to Tickets
+
+        Click on any ticket to open modal
+
+        View full conversation history
+
+        Type reply in textarea
+
+        Send response to school admin
+
+        Close ticket when resolved
+
+    Create New Ticket to School
+
+        Click "New Ticket to School"
+
+        Select school
+
+        Add subject, category, priority, description
+
+        Send to school admin
+
+Analytics Dashboard
+
+    View Performance Metrics
+
+        Overall statistics (students, schools, admins, exams)
+
+        Top performing schools
+
+        Subject performance breakdown
+
+        LGA-wise comparison
+
+        Monthly trends
+
+    Key Metrics
+
+        Average scores
+
+        Pass rates
+
+        Active users
+
+        New registrations
+
+        Performance insights
+
+Subscription Auto-Deactivation
+
+The system automatically checks subscription expiry:
+
+    Daily check: When loading admin list
+
+    Expired accounts: Status changes to 'expired'
+
+    Deactivation: Expired admins cannot access their dashboards
+
+    Reactivation: Super admin can reactivate by updating subscription
+
+PWA Features
+
+The app is a Progressive Web Application with:
+
+    Installable: Add to home screen on mobile devices
+
+    Offline Support: Access previously loaded content offline
+
+    Fast Loading: Optimized for quick startup
+
+    Responsive Design: Works on all screen sizes
+
+To install:
+
+    Mobile: Open in Chrome/Safari → Share menu → Add to Home Screen
+
+    Desktop: Click install icon in address bar
+
 Demo Credentials
 
-For testing purposes, use:
+For testing purposes:
 
-    Email/State Code: Any value
+    Email: admin@megatechsolutions.org
 
-    Password: Any value
+    Password: megatech2024
 
-    Demo Login: Click "Quick Demo Login" button
+Alternative demo:
 
-Test Scenarios
+    Email: commissioner@kogimoe.gov.ng
 
-    User registration flow
-
-    Attendance marking
-
-    Profile updates
-
-    Report generation
-
-    Mobile responsiveness
-
-Contributing
-
-We welcome contributions! Please follow these steps:
-
-    Fork the repository
-
-    Create a feature branch (git checkout -b feature/AmazingFeature)
-
-    Commit your changes (git commit -m 'Add some AmazingFeature')
-
-    Push to the branch (git push origin feature/AmazingFeature)
-
-    Open a Pull Request
-
-Development Guidelines
-
-    Follow React/Next.js best practices
-
-    Use functional components with hooks
-
-    Maintain consistent code style
-
-    Add comments for complex logic
-
-    Test thoroughly before submitting
+    Password: megatech2024
 
 Roadmap
 Phase 1 (Completed)
 
-    Landing page design
+    School management
 
-    User authentication
+    Admin creation with subscriptions
 
-    Basic dashboard
+    Subscription tracking and expiry
 
-    Attendance tracking
+    Report generation
 
-    Profile management
+    Support ticket system
 
 Phase 2 (In Progress)
 
-    Backend API integration
-
-    Database setup
-
-    Admin dashboard
-
     Payment gateway integration
 
-    Email/SMS notifications
+    Automated renewal reminders
+
+    Advanced financial reporting
+
+    Multi-currency support
 
 Phase 3 (Planned)
 
-    Mobile app development
+    Real-time notifications
 
-    Advanced analytics
+    Custom branding for schools
 
-    CDS group management
+    API access for integrations
 
-    Certificate generation
-
-    API documentation
+    Mobile app for super admins
 
 Support
 
-For support, email: support@nysc-attendance.ng or use the in-app help section.
-License
+For technical support, contact the Mega Tech Solutions development team.
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-Acknowledgments
+Built for Kogi State Ministry of Education in alliance with Mega Tech Solutions.
 
-    National Youth Service Corps (NYSC)
+© 2026 Mega Tech Solutions. All rights reserved.
 
-    All contributing developers
-
-    Open source community
-
-    Nigerian corps members for inspiration
-
-Contact
-
-Project Link: https://github.com/gloriousnetworker/nysc-corpers-cds-attendance-app.git
-
-Live Demo: https://nysc-corpers-cds-attendance-app.vercel.app/
-
-Built with ❤️ for Nigerian Youth Service Corps Members
+Built with ❤️ for Kogi State Ministry of Education
