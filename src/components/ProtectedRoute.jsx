@@ -12,7 +12,7 @@ export default function ProtectedRoute({ children }) {
   useEffect(() => {
     if (authChecked && !isAuthenticated && !redirecting) {
       setRedirecting(true);
-      router.push('/superadmin/login');
+      router.replace('/login');
     }
   }, [isAuthenticated, authChecked, router, redirecting]);
 

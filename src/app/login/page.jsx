@@ -1,3 +1,4 @@
+// login/page.jsx
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
@@ -15,15 +16,20 @@ export default function SuperAdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [focusedField, setFocusedField] = useState(null)
   const router = useRouter()
-  const { login, isAuthenticated } = useSuperAdminAuth()
+  const { login, isAuthenticated, authChecked } = useSuperAdminAuth()
   const videoRef = useRef(null)
   const currentYear = new Date().getFullYear()
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/dashboard')
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (mounted && authChecked && isAuthenticated) {
+      router.replace('/dashboard')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, authChecked, router, mounted])
 
   useEffect(() => {
     if (loading && videoRef.current) {
@@ -31,31 +37,44 @@ export default function SuperAdminLoginPage() {
     }
   }, [loading])
 
-  const handleLogin = async (email, pass) => {
-    setLoading(true)
-    const loginToast = toast.loading('Accessing Super Admin Portal...')
-    try {
-      const result = await login(email || identifier, pass || password)
-      if (result.success) {
-        toast.success('Welcome back, Super Admin!', { id: loginToast })
-        setTimeout(() => { router.push('/dashboard') }, 1500)
-      } else {
-        toast.error(result.message || 'Invalid super admin credentials', { id: loginToast })
-        setLoading(false)
-      }
-    } catch (error) {
-      toast.error('Authentication failed. Please try again.', { id: loginToast })
-      setLoading(false)
-    }
-  }
-
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!identifier || !password) {
       toast.error('Please enter your super admin credentials')
       return
     }
-    handleLogin(identifier, password)
+    setLoading(true)
+    const loginToast = toast.loading('Accessing Super Admin Portal...')
+    
+    try {
+      const result = await login(identifier, password)
+      
+      if (result.requiresTwoFactor) {
+        toast.dismiss(loginToast)
+        if (result.userId && result.tempToken) {
+          router.push(`/login/verify-2fa?userId=${result.userId}&tkn=${result.tempToken}`)
+        } else {
+          toast.error('Invalid 2FA response from server')
+          setLoading(false)
+        }
+      } else if (result.success) {
+        toast.success('Welcome back, Super Admin!', { id: loginToast })
+        setTimeout(() => {
+          router.replace('/dashboard')
+        }, 1500)
+      } else {
+        toast.error(result.message || 'Invalid super admin credentials', { id: loginToast })
+        setLoading(false)
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      toast.error(error.message || 'Authentication failed. Please try again.', { id: loginToast })
+      setLoading(false)
+    }
+  }
+
+  const handleForgotPassword = () => {
+    toast.error('Please contact your system administrator to reset your password')
   }
 
   return (
@@ -109,7 +128,6 @@ export default function SuperAdminLoginPage() {
           background: 'linear-gradient(to top, rgba(10,15,46,0.8) 0%, transparent 100%)',
           pointerEvents: 'none',
         }} />
-
         <div style={{
           position: 'absolute',
           top: '10%',
@@ -211,7 +229,6 @@ export default function SuperAdminLoginPage() {
                 style={{ objectFit: 'contain' }}
               />
             </div>
-
             <h1 style={{
               fontSize: '26px',
               fontWeight: 700,
@@ -279,12 +296,12 @@ export default function SuperAdminLoginPage() {
                 boxShadow: focusedField === 'email' ? '0 0 0 3px rgba(100,181,246,0.1)' : 'none',
               }}>
                 <input
-                  type="text"
+                  type="email"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   onFocus={() => setFocusedField('email')}
                   onBlur={() => setFocusedField(null)}
-                  placeholder="admin@megatechsolutions.org"
+                  placeholder="superadmin@megatechsolutions.org"
                   disabled={loading}
                   style={{
                     width: '100%',
@@ -396,13 +413,14 @@ export default function SuperAdminLoginPage() {
               </label>
               <button
                 type="button"
+                onClick={handleForgotPassword}
                 disabled={loading}
                 style={{
                   background: 'none',
                   border: 'none',
-                  cursor: 'pointer',
+                  cursor: loading ? 'not-allowed' : 'pointer',
                   fontSize: '13px',
-                  color: '#90caf9',
+                  color: loading ? 'rgba(255,255,255,0.2)' : '#90caf9',
                   fontFamily: '"Playfair Display", serif',
                   padding: 0,
                 }}

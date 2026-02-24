@@ -1,8 +1,9 @@
-'use client';
+// components/super-admin/Sidebar.jsx
+'use client'
 
-import { useSuperAdminAuth } from '../../context/AuthContext';
-import { motion, AnimatePresence } from 'framer-motion';
-import Image from 'next/image';
+import { useSuperAdminAuth } from '../../context/AuthContext'
+import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
 import {
   sidebarContainer,
   sidebarOverlay,
@@ -25,10 +26,10 @@ import {
   sidebarHelp,
   sidebarHelpTitle,
   sidebarHelpButton
-} from '../../styles/styles';
+} from '../../styles/styles'
 
 export default function SuperAdminSidebar({ isOpen, onClose, activeSection, setActiveSection, onChatClick }) {
-  const { logout } = useSuperAdminAuth();
+  const { logout } = useSuperAdminAuth()
 
   const menuItems = [
     { icon: '🏠', label: 'Dashboard', id: 'home' },
@@ -40,12 +41,12 @@ export default function SuperAdminSidebar({ isOpen, onClose, activeSection, setA
     { icon: '📈', label: 'Advanced Analytics', id: 'analytics' },
     { icon: '⚙️', label: 'System Settings', id: 'settings' },
     { icon: '❓', label: 'Help & Resources', id: 'help' },
-  ];
+  ]
 
   const handleMenuItemClick = (sectionId) => {
-    setActiveSection(sectionId);
-    onClose();
-  };
+    setActiveSection(sectionId)
+    onClose()
+  }
 
   return (
     <>
@@ -134,5 +135,5 @@ export default function SuperAdminSidebar({ isOpen, onClose, activeSection, setA
         </div>
       </motion.aside>
     </>
-  );
+  )
 }

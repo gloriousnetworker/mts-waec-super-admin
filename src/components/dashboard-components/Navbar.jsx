@@ -2,7 +2,7 @@
 
 import { useSuperAdminAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import {
   navbarContainer,
@@ -47,9 +47,35 @@ import {
   modalButtonDanger
 } from '../../styles/styles';
 
+const BASE_URL = 'https://cbt-simulator-backend.vercel.app';
+
 export default function SuperAdminNavbar({ activeSection, setActiveSection, onMenuClick, onChatClick }) {
-  const { user, logout } = useSuperAdminAuth();
+  const { user, logout, refreshUser } = useSuperAdminAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [liveUser, setLiveUser] = useState(null);
+
+  useEffect(() => {
+    const fetchMe = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/api/auth/me`, {
+          method: 'GET',
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setLiveUser(data.user);
+        }
+      } catch {}
+    };
+    fetchMe();
+  }, []);
+
+  const displayUser = liveUser || user;
+
+  const getInitials = (name) => {
+    if (!name) return 'SA';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
 
   const handleLogout = () => {
     logout();
@@ -78,13 +104,13 @@ export default function SuperAdminNavbar({ activeSection, setActiveSection, onMe
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
-              
+
               <div className={navbarLogo}>
                 <div className={navbarLogoImage}>
-                  <Image 
-                    src="/logo.png" 
-                    alt="Mega Tech Logo" 
-                    width={40} 
+                  <Image
+                    src="/logo.png"
+                    alt="Mega Tech Logo"
+                    width={40}
                     height={40}
                     className="object-contain"
                   />
@@ -138,28 +164,28 @@ export default function SuperAdminNavbar({ activeSection, setActiveSection, onMe
                 <button className={navbarProfileButton}>
                   <div className={navbarProfileAvatar}>
                     <div className="w-9 h-9 rounded-full bg-[#7C3AED] flex items-center justify-center text-white text-[14px] leading-[100%] font-[600]">
-                      {user?.name?.split(' ').map(n => n[0]).join('') || 'SA'}
+                      {getInitials(displayUser?.name)}
                     </div>
                   </div>
                   <div className={navbarProfileInfo}>
-                    <p className={navbarProfileName}>{user?.name || 'Super Admin'}</p>
-                    <p className={navbarProfileId}>{user?.role || 'Mega Tech Solutions'}</p>
+                    <p className={navbarProfileName}>{displayUser?.name || 'Super Admin'}</p>
+                    <p className={navbarProfileId}>{displayUser?.role === 'super_admin' ? 'Super Administrator' : displayUser?.role || 'Mega Tech Solutions'}</p>
                   </div>
                 </button>
-                
+
                 <div className={navbarDropdown}>
                   <div className={navbarDropdownHeader}>
-                    <p className={navbarDropdownHeaderName}>{user?.name}</p>
-                    <p className={navbarDropdownHeaderEmail}>{user?.email}</p>
+                    <p className={navbarDropdownHeaderName}>{displayUser?.name || 'Super Admin'}</p>
+                    <p className={navbarDropdownHeaderEmail}>{displayUser?.email || ''}</p>
                   </div>
                   <div className={navbarDropdownMenu}>
-                    <button 
+                    <button
                       onClick={() => setActiveSection('settings')}
                       className={navbarDropdownItem}
                     >
                       Profile Settings
                     </button>
-                    <button 
+                    <button
                       onClick={onChatClick}
                       className={navbarDropdownItem}
                     >

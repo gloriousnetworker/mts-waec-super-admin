@@ -37,13 +37,10 @@ function SuperAdminDashboardContent() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (authChecked && isAuthenticated) {
-      const timer = setTimeout(() => {
-        setPageLoading(false);
-      }, 100);
-      return () => clearTimeout(timer);
+    if (authChecked) {
+      setPageLoading(false);
     }
-  }, [authChecked, isAuthenticated]);
+  }, [authChecked]);
 
   useEffect(() => {
     const reportGenerated = searchParams.get('reportGenerated');
