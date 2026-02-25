@@ -1,5 +1,5 @@
+// components/dashboard-content/Admins.jsx
 'use client';
-
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSuperAdminAuth } from '../../context/AuthContext';
@@ -16,7 +16,6 @@ import {
   modalActions,
   modalButtonSecondary,
   modalButtonDanger,
-  buttonPrimary,
   superAdminStatCard,
   superAdminStatValue,
   superAdminStatLabel
@@ -28,6 +27,7 @@ export default function Admins({ setActiveSection }) {
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -47,7 +47,8 @@ export default function Admins({ setActiveSection }) {
   const subscriptionPlans = [
     { id: 'monthly', name: 'Monthly', price: 15000 },
     { id: 'termly', name: 'Termly', price: 42000 },
-    { id: 'yearly', name: 'Yearly', price: 120000 }
+    { id: 'yearly', name: 'Yearly', price: 120000 },
+    { id: 'unlimited', name: 'Unlimited', price: 500000 }
   ];
 
   useEffect(() => {
@@ -121,6 +122,46 @@ export default function Admins({ setActiveSection }) {
     }
   };
 
+  const handleUpdateAdmin = async () => {
+    if (!formData.name || !formData.email) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    const toastId = toast.loading('Updating admin...');
+
+    try {
+      const response = await fetchWithAuth(`/super-admin/admins/${selectedAdmin.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          subscription: formData.subscription
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Admin updated successfully!', { id: toastId });
+        setShowEditModal(false);
+        setSelectedAdmin(null);
+        setFormData({
+          name: '',
+          email: '',
+          schoolId: '',
+          password: 'Admin123!',
+          subscription: { plan: 'monthly' }
+        });
+        fetchData();
+      } else {
+        toast.error(data.message || 'Failed to update admin', { id: toastId });
+      }
+    } catch (error) {
+      toast.error('Network error', { id: toastId });
+    }
+  };
+
   const handleDeleteAdmin = async () => {
     const toastId = toast.loading('Deleting admin...');
 
@@ -143,6 +184,45 @@ export default function Admins({ setActiveSection }) {
     }
   };
 
+  const handleToggleStatus = async (admin) => {
+    const newStatus = admin.status === 'active' ? 'suspended' : 'active';
+    const toastId = toast.loading(`${newStatus === 'active' ? 'Activating' : 'Suspending'} admin...`);
+
+    try {
+      const response = await fetchWithAuth(`/super-admin/admins/${admin.id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        toast.success(`Admin ${newStatus} successfully!`, { id: toastId });
+        fetchData();
+      } else {
+        const data = await response.json();
+        toast.error(data.message || `Failed to ${newStatus} admin`, { id: toastId });
+      }
+    } catch (error) {
+      toast.error('Network error', { id: toastId });
+    }
+  };
+
+  const openEditModal = (admin) => {
+    setSelectedAdmin(admin);
+    setFormData({
+      name: admin.name || '',
+      email: admin.email || '',
+      schoolId: admin.schoolId || '',
+      password: 'Admin123!',
+      subscription: admin.subscription || { plan: 'monthly' }
+    });
+    setShowEditModal(true);
+  };
+
+  const openDeleteModal = (admin) => {
+    setSelectedAdmin(admin);
+    setShowDeleteModal(true);
+  };
+
   const formatDate = (timestamp) => {
     if (!timestamp) return 'N/A';
     if (timestamp._seconds) {
@@ -154,7 +234,9 @@ export default function Admins({ setActiveSection }) {
   const getStatusColor = (status) => {
     return status === 'active' 
       ? 'bg-green-100 text-green-600' 
-      : 'bg-red-100 text-red-600';
+      : status === 'expired'
+      ? 'bg-yellow-100 text-yellow-600'
+      : 'bg-gray-100 text-gray-600';
   };
 
   const getPlanColor = (plan) => {
@@ -162,6 +244,7 @@ export default function Admins({ setActiveSection }) {
       case 'monthly': return 'bg-blue-100 text-blue-600';
       case 'termly': return 'bg-purple-100 text-purple-600';
       case 'yearly': return 'bg-green-100 text-green-600';
+      case 'unlimited': return 'bg-indigo-100 text-indigo-600';
       default: return 'bg-gray-100 text-gray-600';
     }
   };
@@ -178,6 +261,7 @@ export default function Admins({ setActiveSection }) {
   const stats = {
     total: admins.length,
     active: admins.filter(a => a.status === 'active').length,
+    expired: admins.filter(a => a.status === 'expired').length,
     monthly: admins.filter(a => a.subscription?.plan === 'monthly').length,
     termly: admins.filter(a => a.subscription?.plan === 'termly').length,
     yearly: admins.filter(a => a.subscription?.plan === 'yearly').length
@@ -207,10 +291,10 @@ export default function Admins({ setActiveSection }) {
         </div>
         <div className={superAdminStatCard}>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[32px]">📆</span>
-            <span className={superAdminStatValue}>{stats.monthly}</span>
+            <span className="text-[32px]">⏰</span>
+            <span className={superAdminStatValue}>{stats.expired}</span>
           </div>
-          <p className={superAdminStatLabel}>Monthly</p>
+          <p className={superAdminStatLabel}>Expired</p>
         </div>
         <div className={superAdminStatCard}>
           <div className="flex items-center justify-between mb-2">
@@ -250,7 +334,8 @@ export default function Admins({ setActiveSection }) {
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="suspended">Suspended</option>
+              <option value="expired">Expired</option>
             </select>
             <select
               value={filterSubscription}
@@ -261,6 +346,7 @@ export default function Admins({ setActiveSection }) {
               <option value="monthly">Monthly</option>
               <option value="termly">Termly</option>
               <option value="yearly">Yearly</option>
+              <option value="unlimited">Unlimited</option>
             </select>
             <button
               onClick={() => setShowCreateModal(true)}
@@ -312,9 +398,18 @@ export default function Admins({ setActiveSection }) {
                       </p>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getStatusColor(admin.status)} font-playfair`}>
+                      <button
+                        onClick={() => handleToggleStatus(admin)}
+                        className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] transition-colors ${
+                          admin.status === 'active' 
+                            ? 'bg-green-100 text-green-600 hover:bg-yellow-100 hover:text-yellow-600' 
+                            : admin.status === 'expired'
+                            ? 'bg-yellow-100 text-yellow-600 hover:bg-green-100 hover:text-green-600'
+                            : 'bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-600'
+                        } font-playfair`}
+                      >
                         {admin.status}
-                      </span>
+                      </button>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getPlanColor(admin.subscription?.plan)} font-playfair`}>
@@ -339,15 +434,20 @@ export default function Admins({ setActiveSection }) {
                       </p>
                     </td>
                     <td className="px-6 py-4">
-                      <button
-                        onClick={() => {
-                          setSelectedAdmin(admin);
-                          setShowDeleteModal(true);
-                        }}
-                        className="p-2 text-[#DC2626] hover:bg-[#FEF2F2] rounded-md transition-colors"
-                      >
-                        🗑️
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openEditModal(admin)}
+                          className="p-2 text-[#7C3AED] hover:bg-[#F5F3FF] rounded-md transition-colors"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => openDeleteModal(admin)}
+                          className="p-2 text-[#DC2626] hover:bg-[#FEF2F2] rounded-md transition-colors"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </td>
                   </motion.tr>
                 ))}
@@ -418,19 +518,6 @@ export default function Admins({ setActiveSection }) {
                   </select>
                 </div>
                 <div>
-                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">Password</label>
-                  <input
-                    type="text"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
-                  />
-                  <p className="text-[9px] leading-[100%] font-[400] text-[#9CA3AF] mt-1 font-playfair">
-                    Default: Admin123!
-                  </p>
-                </div>
-                <div>
                   <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">Subscription Plan *</label>
                   <select
                     value={formData.subscription.plan}
@@ -438,7 +525,7 @@ export default function Admins({ setActiveSection }) {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
                   >
                     {subscriptionPlans.map(plan => (
-                      <option key={plan.id} value={plan.id}>{plan.name}</option>
+                      <option key={plan.id} value={plan.id}>{plan.name} - ₦{plan.price.toLocaleString()}</option>
                     ))}
                   </select>
                 </div>
@@ -456,6 +543,76 @@ export default function Admins({ setActiveSection }) {
                   className="px-4 py-2 bg-[#7C3AED] text-white rounded-md hover:bg-[#6D28D9] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
                 >
                   Create Admin
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showEditModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={modalOverlay}
+            onClick={() => setShowEditModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="bg-white rounded-xl p-6 max-w-lg w-full mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className={modalTitle}>Edit Admin</h3>
+              
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">Full Name *</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">Email *</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">Subscription Plan *</label>
+                  <select
+                    value={formData.subscription.plan}
+                    onChange={(e) => handleSubscriptionChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                  >
+                    {subscriptionPlans.map(plan => (
+                      <option key={plan.id} value={plan.id}>{plan.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className={modalActions}>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className={modalButtonSecondary}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateAdmin}
+                  className="px-4 py-2 bg-[#7C3AED] text-white rounded-md hover:bg-[#6D28D9] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                >
+                  Update Admin
                 </button>
               </div>
             </motion.div>

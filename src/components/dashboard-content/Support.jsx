@@ -1,5 +1,5 @@
+// components/dashboard-content/Support.jsx
 'use client';
-
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSuperAdminAuth } from '../../context/AuthContext';
@@ -21,7 +21,7 @@ import {
   superAdminStatLabel
 } from '../../styles/styles';
 
-export default function Support({ setActiveSection }) {
+export default function Support({ setActiveSection, onOpenChat }) {
   const { fetchWithAuth } = useSuperAdminAuth();
   const [tickets, setTickets] = useState([]);
   const [schools, setSchools] = useState([]);
@@ -48,7 +48,7 @@ export default function Support({ setActiveSection }) {
     setLoading(true);
     try {
       const [ticketsRes, schoolsRes] = await Promise.all([
-        fetchWithAuth('/admin/tickets'),
+        fetchWithAuth('/super-admin/tickets'),
         fetchWithAuth('/super-admin/schools')
       ]);
 
@@ -78,7 +78,7 @@ export default function Support({ setActiveSection }) {
     const toastId = toast.loading('Creating ticket...');
 
     try {
-      const response = await fetchWithAuth('/admin/tickets', {
+      const response = await fetchWithAuth('/super-admin/tickets', {
         method: 'POST',
         body: JSON.stringify(formData)
       });
@@ -90,6 +90,9 @@ export default function Support({ setActiveSection }) {
         setShowCreateModal(false);
         setFormData({ subject: '', category: 'technical', priority: 'medium', description: '', schoolId: '' });
         fetchData();
+        if (onOpenChat) {
+          onOpenChat(data.ticket?.id);
+        }
       } else {
         toast.error(data.message || 'Failed to create ticket', { id: toastId });
       }
@@ -101,33 +104,54 @@ export default function Support({ setActiveSection }) {
   const handleSendReply = async () => {
     if (!replyMessage.trim() || !selectedTicket) return;
 
-    const newMessage = {
-      sender: 'support',
-      message: replyMessage,
-      timestamp: new Date().toISOString()
-    };
+    const toastId = toast.loading('Sending reply...');
 
-    const updatedTicket = {
-      ...selectedTicket,
-      messages: [...(selectedTicket.messages || []), newMessage],
-      updatedAt: { _seconds: Math.floor(Date.now() / 1000) }
-    };
+    try {
+      const response = await fetchWithAuth(`/super-admin/tickets/${selectedTicket.id}/respond`, {
+        method: 'POST',
+        body: JSON.stringify({ message: replyMessage })
+      });
 
-    setTickets(tickets.map(t => t.id === selectedTicket.id ? updatedTicket : t));
-    setSelectedTicket(updatedTicket);
-    setReplyMessage('');
-    toast.success('Reply sent');
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Reply sent successfully', { id: toastId });
+        setReplyMessage('');
+        fetchData();
+        setSelectedTicket(data.ticket);
+      } else {
+        toast.error(data.message || 'Failed to send reply', { id: toastId });
+      }
+    } catch (error) {
+      toast.error('Network error', { id: toastId });
+    }
+  };
+
+  const handleUpdateStatus = async (ticket, newStatus) => {
+    const toastId = toast.loading(`Updating ticket status...`);
+
+    try {
+      const response = await fetchWithAuth(`/super-admin/tickets/${ticket.id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        toast.success(`Ticket marked as ${newStatus}`, { id: toastId });
+        fetchData();
+        if (showTicketModal && selectedTicket?.id === ticket.id) {
+          setSelectedTicket({ ...selectedTicket, status: newStatus });
+        }
+      } else {
+        const data = await response.json();
+        toast.error(data.message || 'Failed to update status', { id: toastId });
+      }
+    } catch (error) {
+      toast.error('Network error', { id: toastId });
+    }
   };
 
   const formatDate = (timestamp) => {
-    if (!timestamp) return 'N/A';
-    if (timestamp._seconds) {
-      return new Date(timestamp._seconds * 1000).toLocaleDateString();
-    }
-    return new Date(timestamp).toLocaleDateString();
-  };
-
-  const formatDateTime = (timestamp) => {
     if (!timestamp) return 'N/A';
     if (timestamp._seconds) {
       return new Date(timestamp._seconds * 1000).toLocaleString();
@@ -138,7 +162,7 @@ export default function Support({ setActiveSection }) {
   const getStatusColor = (status) => {
     switch(status) {
       case 'open': return 'bg-yellow-100 text-yellow-600';
-      case 'in-progress': return 'bg-blue-100 text-blue-600';
+      case 'in_progress': return 'bg-blue-100 text-blue-600';
       case 'closed': return 'bg-gray-100 text-gray-600';
       default: return 'bg-gray-100 text-gray-600';
     }
@@ -163,7 +187,7 @@ export default function Support({ setActiveSection }) {
   const stats = {
     total: tickets.length,
     open: tickets.filter(t => t.status === 'open').length,
-    inProgress: tickets.filter(t => t.status === 'in-progress').length,
+    inProgress: tickets.filter(t => t.status === 'in_progress').length,
     closed: tickets.filter(t => t.status === 'closed').length,
     highPriority: tickets.filter(t => t.priority === 'high' && t.status !== 'closed').length
   };
@@ -225,14 +249,14 @@ export default function Support({ setActiveSection }) {
             >
               <option value="all">All Status</option>
               <option value="open">Open</option>
-              <option value="in-progress">In Progress</option>
+              <option value="in_progress">In Progress</option>
               <option value="closed">Closed</option>
             </select>
             <button
               onClick={() => setShowCreateModal(true)}
               className="px-6 py-2.5 bg-[#7C3AED] text-white rounded-lg hover:bg-[#6D28D9] transition-colors font-[600] text-[13px] font-playfair whitespace-nowrap"
             >
-              + New Ticket to School
+              + New Ticket
             </button>
           </div>
         </div>
@@ -264,7 +288,7 @@ export default function Support({ setActiveSection }) {
                       {ticket.subject}
                     </h3>
                     <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getStatusColor(ticket.status)}`}>
-                      {ticket.status}
+                      {ticket.status === 'in_progress' ? 'In Progress' : ticket.status}
                     </span>
                     <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getPriorityBadge(ticket.priority)}`}>
                       {ticket.priority}
@@ -273,13 +297,16 @@ export default function Support({ setActiveSection }) {
                   <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair mb-1">
                     Ticket #{ticket.id}
                   </p>
+                  <p className="text-[13px] leading-[140%] font-[400] text-[#1E1E1E] font-playfair line-clamp-2">
+                    {ticket.description}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="text-[11px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">
-                    Created: {formatDate(ticket.createdAt)}
+                    School: {schools.find(s => s.id === ticket.schoolId)?.name || 'Unknown'}
                   </p>
                   <p className="text-[11px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair mt-1">
-                    Updated: {formatDate(ticket.updatedAt)}
+                    Created: {formatDate(ticket.createdAt)}
                   </p>
                 </div>
               </div>
@@ -309,7 +336,7 @@ export default function Support({ setActiveSection }) {
               className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className={modalTitle}>Create New Support Ticket for School</h3>
+              <h3 className={modalTitle}>Create New Support Ticket</h3>
               <div className="space-y-4 mb-6">
                 <div>
                   <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Select School *</label>
@@ -377,7 +404,7 @@ export default function Support({ setActiveSection }) {
                     onChange={handleInputChange}
                     rows="4"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
-                    placeholder="Please provide detailed information for the school admin..."
+                    placeholder="Please provide detailed information..."
                   />
                 </div>
               </div>
@@ -393,7 +420,7 @@ export default function Support({ setActiveSection }) {
                   onClick={handleCreateTicket}
                   className="px-4 py-2 bg-[#7C3AED] text-white rounded-md hover:bg-[#6D28D9] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
                 >
-                  Send to School Admin
+                  Create Ticket
                 </button>
               </div>
             </motion.div>
@@ -426,7 +453,7 @@ export default function Support({ setActiveSection }) {
                       {selectedTicket.subject}
                     </h3>
                     <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getStatusColor(selectedTicket.status)}`}>
-                      {selectedTicket.status}
+                      {selectedTicket.status === 'in_progress' ? 'In Progress' : selectedTicket.status}
                     </span>
                     <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getPriorityBadge(selectedTicket.priority)}`}>
                       {selectedTicket.priority}
@@ -436,8 +463,13 @@ export default function Support({ setActiveSection }) {
                     Ticket #{selectedTicket.id}
                   </p>
                   <div className="flex gap-4 text-[11px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">
-                    <span>Created: {formatDateTime(selectedTicket.createdAt)}</span>
-                    <span>Updated: {formatDateTime(selectedTicket.updatedAt)}</span>
+                    <span>School: {schools.find(s => s.id === selectedTicket.schoolId)?.name || 'Unknown'}</span>
+                    <span>Created: {formatDate(selectedTicket.createdAt)}</span>
+                  </div>
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                    <p className="text-[13px] leading-[140%] font-[400] text-[#1E1E1E] font-playfair">
+                      {selectedTicket.description}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -446,17 +478,20 @@ export default function Support({ setActiveSection }) {
                 <h4 className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] mb-4 font-playfair">Conversation</h4>
                 <div className="space-y-4 max-h-96 overflow-y-auto p-2">
                   {selectedTicket.messages?.map((msg, index) => (
-                    <div key={index} className={`flex ${msg.sender === 'support' ? 'justify-end' : 'justify-start'}`}>
+                    <div key={index} className={`flex ${msg.sender === 'super_admin' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[80%] p-4 rounded-lg ${
-                        msg.sender === 'support' 
+                        msg.sender === 'super_admin' 
                           ? 'bg-[#7C3AED] text-white' 
                           : 'bg-gray-100 text-[#1E1E1E]'
                       }`}>
-                        <p className="text-[13px] leading-[140%] font-[500] font-playfair mb-2">{msg.message}</p>
-                        <p className={`text-[9px] leading-[100%] font-[400] ${
-                          msg.sender === 'support' ? 'text-white/70' : 'text-[#626060]'
+                        <p className="text-[10px] leading-[100%] font-[500] mb-1 opacity-70">
+                          {msg.sender === 'super_admin' ? 'You' : 'Admin'}
+                        </p>
+                        <p className="text-[13px] leading-[140%] font-[500] font-playfair">{msg.content}</p>
+                        <p className={`text-[9px] leading-[100%] font-[400] mt-2 ${
+                          msg.sender === 'super_admin' ? 'text-white/70' : 'text-[#626060]'
                         } font-playfair`}>
-                          {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}
+                          {msg.timestamp ? new Date(msg.timestamp).toLocaleString() : ''}
                         </p>
                       </div>
                     </div>
@@ -474,7 +509,13 @@ export default function Support({ setActiveSection }) {
                     rows="3"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair mb-4"
                   />
-                  <div className="flex justify-end">
+                  <div className="flex justify-between items-center">
+                    <button
+                      onClick={() => handleUpdateStatus(selectedTicket, 'closed')}
+                      className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-[13px] leading-[100%] font-[600]"
+                    >
+                      Close Ticket
+                    </button>
                     <button
                       onClick={handleSendReply}
                       disabled={!replyMessage.trim()}
@@ -483,6 +524,19 @@ export default function Support({ setActiveSection }) {
                       }`}
                     >
                       Send Reply
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {selectedTicket.status === 'closed' && (
+                <div className="border-t border-gray-200 pt-6">
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => handleUpdateStatus(selectedTicket, 'open')}
+                      className="px-4 py-2 bg-[#7C3AED] text-white rounded-lg hover:bg-[#6D28D9] transition-colors text-[13px] leading-[100%] font-[600]"
+                    >
+                      Reopen Ticket
                     </button>
                   </div>
                 </div>

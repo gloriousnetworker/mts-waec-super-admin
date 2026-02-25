@@ -1,3 +1,4 @@
+// app/super-admin/dashboard/page.jsx
 'use client';
 import { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -33,7 +34,7 @@ function SuperAdminDashboardContent() {
   const [activeSection, setActiveSection] = useState('home');
   const [showChat, setShowChat] = useState(false);
   const [chatTicketId, setChatTicketId] = useState(null);
-  const { isAuthenticated, authChecked, user } = useSuperAdminAuth();
+  const { isAuthenticated, authChecked } = useSuperAdminAuth();
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -43,12 +44,10 @@ function SuperAdminDashboardContent() {
   }, [authChecked]);
 
   useEffect(() => {
-    const reportGenerated = searchParams.get('reportGenerated');
-    if (reportGenerated === 'true') {
-      toast.success('Report generated successfully!');
-      const url = new URL(window.location.href);
-      url.searchParams.delete('reportGenerated');
-      window.history.replaceState({}, '', url.pathname);
+    const ticketId = searchParams.get('ticket');
+    if (ticketId) {
+      setChatTicketId(ticketId);
+      setShowChat(true);
     }
   }, [searchParams]);
 
@@ -65,6 +64,9 @@ function SuperAdminDashboardContent() {
   const handleCloseChat = () => {
     setShowChat(false);
     setChatTicketId(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('ticket');
+    window.history.replaceState({}, '', url.pathname);
   };
 
   const renderSection = () => {

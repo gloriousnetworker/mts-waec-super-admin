@@ -1,5 +1,5 @@
+// components/dashboard-content/SuperAdminChat.jsx
 'use client';
-
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSuperAdminAuth } from '../../context/AuthContext';
@@ -24,185 +24,108 @@ const chatSendButton = "px-4 py-2 bg-[#7C3AED] text-white rounded-md hover:bg-[#
 const chatDisabledInput = "flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-400 text-[13px] font-playfair cursor-not-allowed";
 
 export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null }) {
-  const { user } = useSuperAdminAuth();
-  const [activeChats, setActiveChats] = useState([]);
-  const [selectedChat, setSelectedChat] = useState(null);
+  const { user, fetchWithAuth } = useSuperAdminAuth();
+  const [tickets, setTickets] = useState([]);
+  const [selectedTicket, setSelectedTicket] = useState(null);
   const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
   const messagesEndRef = useRef(null);
-  const [isTyping, setIsTyping] = useState(false);
   const [view, setView] = useState('list');
-  const [chatsLoaded, setChatsLoaded] = useState(false);
 
   useEffect(() => {
-    const storedChats = localStorage.getItem('super_admin_chats');
-    if (storedChats) {
-      setActiveChats(JSON.parse(storedChats));
-    } else {
-      const demoChats = [
-        {
-          id: 'CHAT001',
-          ticketId: 'TKT001',
-          adminName: 'Dr. Michael Adebayo',
-          adminEmail: 'michael.adebayo@ksce.edu.ng',
-          school: 'Kogi State College of Education',
-          schoolId: 'SCH001',
-          subject: 'Cannot add new students - Student ID error',
-          lastMessage: 'Need help with student registration',
-          lastMessageTime: new Date(Date.now() - 1800000).toISOString(),
-          unread: 2,
-          status: 'active',
-          messages: [
-            { id: 1, sender: 'admin', senderName: 'Dr. Michael Adebayo', text: 'Hello, I am having trouble adding new students to the system.', timestamp: new Date(Date.now() - 7200000).toISOString() },
-            { id: 2, sender: 'admin', senderName: 'Dr. Michael Adebayo', text: 'The form keeps throwing an error when I try to submit.', timestamp: new Date(Date.now() - 7100000).toISOString() },
-            { id: 3, sender: 'support', senderName: 'Support Team', text: 'I understand your issue. Can you share a screenshot of the error?', timestamp: new Date(Date.now() - 7000000).toISOString() },
-            { id: 4, sender: 'admin', senderName: 'Dr. Michael Adebayo', text: 'Here is the screenshot. It says "Student ID already exists" even for new students.', timestamp: new Date(Date.now() - 6900000).toISOString() }
-          ]
-        },
-        {
-          id: 'CHAT002',
-          ticketId: 'TKT002',
-          adminName: 'Mrs. Sarah Ochefu',
-          adminEmail: 'sarah.ochefu@gssokoja.edu.ng',
-          school: 'Government Secondary School, Lokoja',
-          schoolId: 'SCH002',
-          subject: 'Student results not showing in dashboard',
-          lastMessage: 'Exam results not displaying correctly',
-          lastMessageTime: new Date(Date.now() - 3600000).toISOString(),
-          unread: 1,
-          status: 'active',
-          messages: [
-            { id: 1, sender: 'admin', senderName: 'Mrs. Sarah Ochefu', text: 'Some student results are not showing up in the dashboard.', timestamp: new Date(Date.now() - 3700000).toISOString() },
-            { id: 2, sender: 'support', senderName: 'Support Team', text: 'Which specific students are affected?', timestamp: new Date(Date.now() - 3600000).toISOString() }
-          ]
-        },
-        {
-          id: 'CHAT003',
-          ticketId: 'TKT003',
-          adminName: 'Mr. James Okonkwo',
-          adminEmail: 'james.okonkwo@sttheresas.edu.ng',
-          school: "St. Theresa's College, Okene",
-          schoolId: 'SCH003',
-          subject: 'Need to increase student capacity',
-          lastMessage: 'Need to increase student capacity',
-          lastMessageTime: new Date(Date.now() - 86400000).toISOString(),
-          unread: 0,
-          status: 'resolved',
-          messages: [
-            { id: 1, sender: 'admin', senderName: 'Mr. James Okonkwo', text: 'We need to increase our student capacity from 1200 to 1500.', timestamp: new Date(Date.now() - 90000000).toISOString() },
-            { id: 2, sender: 'support', senderName: 'Support Team', text: 'I have updated your school capacity. Please verify.', timestamp: new Date(Date.now() - 89000000).toISOString() },
-            { id: 3, sender: 'admin', senderName: 'Mr. James Okonkwo', text: 'Confirmed working. Thank you!', timestamp: new Date(Date.now() - 88000000).toISOString() }
-          ]
-        }
-      ];
-      setActiveChats(demoChats);
-      localStorage.setItem('super_admin_chats', JSON.stringify(demoChats));
+    if (isOpen) {
+      fetchTickets();
     }
-    setChatsLoaded(true);
-  }, []);
+  }, [isOpen]);
 
   useEffect(() => {
-    if (!chatsLoaded) return;
     if (!isOpen) {
-      setSelectedChat(null);
+      setSelectedTicket(null);
       setView('list');
       return;
     }
     if (initialTicketId) {
-      const chat = activeChats.find(c => c.ticketId === initialTicketId);
-      if (chat) {
-        const updatedChats = activeChats.map(c =>
-          c.id === chat.id ? { ...c, unread: 0 } : c
-        );
-        setActiveChats(updatedChats);
-        localStorage.setItem('super_admin_chats', JSON.stringify(updatedChats));
-        const freshChat = updatedChats.find(c => c.id === chat.id);
-        setSelectedChat(freshChat);
+      const ticket = tickets.find(t => t.id === initialTicketId);
+      if (ticket) {
+        setSelectedTicket(ticket);
         setView('chat');
-      } else {
-        setView('list');
       }
-    } else {
-      setSelectedChat(null);
-      setView('list');
     }
-  }, [isOpen, initialTicketId, chatsLoaded]);
+  }, [isOpen, initialTicketId, tickets]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [selectedChat?.messages]);
+  }, [selectedTicket?.messages]);
 
-  const getChatDisabled = (chat) => {
-    if (!chat) return true;
-    if (chat.status === 'resolved') return true;
-    const tickets = JSON.parse(localStorage.getItem('super_admin_tickets') || '[]');
-    const ticket = tickets.find(t => t.id === chat.ticketId);
-    if (ticket && ticket.status === 'closed') return true;
-    return false;
+  const fetchTickets = async () => {
+    setLoading(true);
+    try {
+      const response = await fetchWithAuth('/super-admin/tickets?status=open,in_progress');
+      const data = await response.json();
+      setTickets(data.tickets || []);
+    } catch (error) {
+      console.error('Failed to fetch tickets:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSelectChat = (chat) => {
-    const updatedChats = activeChats.map(c =>
-      c.id === chat.id ? { ...c, unread: 0 } : c
-    );
-    setActiveChats(updatedChats);
-    localStorage.setItem('super_admin_chats', JSON.stringify(updatedChats));
-    setSelectedChat(updatedChats.find(c => c.id === chat.id));
-    setView('chat');
+  const fetchTicketDetails = async (ticketId) => {
+    try {
+      const response = await fetchWithAuth(`/super-admin/tickets/${ticketId}`);
+      const data = await response.json();
+      return data.ticket;
+    } catch (error) {
+      console.error('Failed to fetch ticket details:', error);
+      return null;
+    }
+  };
+
+  const handleSelectTicket = async (ticket) => {
+    setLoading(true);
+    const detailedTicket = await fetchTicketDetails(ticket.id);
+    if (detailedTicket) {
+      setSelectedTicket(detailedTicket);
+      setView('chat');
+    }
+    setLoading(false);
   };
 
   const handleBackToList = () => {
-    setSelectedChat(null);
+    setSelectedTicket(null);
     setView('list');
   };
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim() || !selectedChat || getChatDisabled(selectedChat)) return;
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedTicket || sending) return;
 
-    const message = {
-      id: (selectedChat.messages?.length || 0) + 1,
-      sender: 'support',
-      senderName: user?.name || 'Support Team',
-      text: newMessage,
-      timestamp: new Date().toISOString()
-    };
+    setSending(true);
+    try {
+      const response = await fetchWithAuth(`/super-admin/tickets/${selectedTicket.id}/respond`, {
+        method: 'POST',
+        body: JSON.stringify({ message: newMessage })
+      });
 
-    const updatedMessages = [...(selectedChat.messages || []), message];
-    const updatedChat = {
-      ...selectedChat,
-      messages: updatedMessages,
-      lastMessage: newMessage,
-      lastMessageTime: new Date().toISOString()
-    };
+      const data = await response.json();
 
-    const updatedChats = activeChats.map(chat =>
-      chat.id === selectedChat.id ? updatedChat : chat
-    );
-    setSelectedChat(updatedChat);
-    setActiveChats(updatedChats);
-    localStorage.setItem('super_admin_chats', JSON.stringify(updatedChats));
-
-    const tickets = JSON.parse(localStorage.getItem('super_admin_tickets') || '[]');
-    const updatedTickets = tickets.map(ticket => {
-      if (ticket.id === selectedChat.ticketId) {
-        return {
-          ...ticket,
-          messages: [
-            ...ticket.messages,
-            {
-              sender: 'support',
-              senderName: user?.name || 'Support Team',
-              message: newMessage,
-              timestamp: new Date().toISOString()
-            }
-          ],
-          updatedAt: new Date().toISOString(),
-          status: 'in-progress'
-        };
+      if (response.ok) {
+        setSelectedTicket(data.ticket);
+        setNewMessage('');
+        
+        setTickets(prev => prev.map(t => 
+          t.id === selectedTicket.id 
+            ? { ...t, messages: data.ticket.messages, updatedAt: data.ticket.updatedAt }
+            : t
+        ));
+      } else {
+        toast.error(data.message || 'Failed to send message');
       }
-      return ticket;
-    });
-    localStorage.setItem('super_admin_tickets', JSON.stringify(updatedTickets));
-    setNewMessage('');
+    } catch (error) {
+      toast.error('Network error');
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -212,69 +135,40 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
     }
   };
 
-  const handleResolveChat = () => {
-    if (!selectedChat) return;
-    const updatedChat = { ...selectedChat, status: 'resolved' };
-    const updatedChats = activeChats.map(chat =>
-      chat.id === selectedChat.id ? updatedChat : chat
-    );
-    setSelectedChat(updatedChat);
-    setActiveChats(updatedChats);
-    localStorage.setItem('super_admin_chats', JSON.stringify(updatedChats));
-
-    const tickets = JSON.parse(localStorage.getItem('super_admin_tickets') || '[]');
-    const updatedTickets = tickets.map(ticket => {
-      if (ticket.id === selectedChat.ticketId) {
-        return { ...ticket, status: 'closed', updatedAt: new Date().toISOString() };
-      }
-      return ticket;
-    });
-    localStorage.setItem('super_admin_tickets', JSON.stringify(updatedTickets));
-    toast.success('Ticket marked as resolved');
-  };
-
-  const handleReopenChat = () => {
-    if (!selectedChat) return;
-    const updatedChat = { ...selectedChat, status: 'active' };
-    const updatedChats = activeChats.map(chat =>
-      chat.id === selectedChat.id ? updatedChat : chat
-    );
-    setSelectedChat(updatedChat);
-    setActiveChats(updatedChats);
-    localStorage.setItem('super_admin_chats', JSON.stringify(updatedChats));
-
-    const tickets = JSON.parse(localStorage.getItem('super_admin_tickets') || '[]');
-    const updatedTickets = tickets.map(ticket => {
-      if (ticket.id === selectedChat.ticketId) {
-        return { ...ticket, status: 'in-progress', updatedAt: new Date().toISOString() };
-      }
-      return ticket;
-    });
-    localStorage.setItem('super_admin_tickets', JSON.stringify(updatedTickets));
-    toast.success('Ticket reopened');
+  const formatTime = (timestamp) => {
+    if (!timestamp) return '';
+    if (timestamp._seconds) {
+      return new Date(timestamp._seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const getTimeAgo = (timestamp) => {
     if (!timestamp) return '';
     const now = new Date();
-    const past = new Date(timestamp);
+    const past = timestamp._seconds ? new Date(timestamp._seconds * 1000) : new Date(timestamp);
     const diffMs = now - past;
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
+    
     if (diffMins < 60) return `${diffMins} min ago`;
     if (diffHours < 24) return `${diffHours} hour ago`;
     return `${diffDays} day ago`;
   };
 
-  const formatTime = (timestamp) => {
-    if (!timestamp) return '';
-    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'open': return 'bg-yellow-100 text-yellow-600';
+      case 'in_progress': return 'bg-blue-100 text-blue-600';
+      case 'closed': return 'bg-gray-100 text-gray-600';
+      default: return 'bg-gray-100 text-gray-600';
+    }
   };
 
-  if (!isOpen) return null;
+  const isTicketClosed = selectedTicket?.status === 'closed';
 
-  const disabled = getChatDisabled(selectedChat);
+  if (!isOpen) return null;
 
   return (
     <div className={chatContainer}>
@@ -287,158 +181,107 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
         >
           <div className={chatHeader}>
             <div className="flex items-center gap-2">
-              {view === 'chat' && selectedChat && (
+              {view === 'chat' && selectedTicket && (
                 <button onClick={handleBackToList} className="text-white hover:text-gray-200 mr-2 text-lg">
                   ←
                 </button>
               )}
               <div>
                 <h3 className={chatHeaderTitle}>
-                  {view === 'chat' && selectedChat ? selectedChat.adminName || 'Support Chat' : 'Support Center'}
+                  {view === 'chat' && selectedTicket ? selectedTicket.subject : 'Support Tickets'}
                 </h3>
                 <p className="text-[10px] leading-[100%] font-[400] text-white/70 mt-1 font-playfair">
-                  {view === 'chat' && selectedChat ? selectedChat.school || 'Active Chat' : 'Mega Tech Solutions'}
+                  {view === 'chat' && selectedTicket ? `Ticket #${selectedTicket.id}` : `${tickets.length} active tickets`}
                 </p>
               </div>
             </div>
             <button onClick={onClose} className={chatHeaderClose}>×</button>
           </div>
 
-          {view === 'list' ? (
+          {loading && view === 'list' ? (
+            <div className="h-96 flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-[#7C3AED] border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : view === 'list' ? (
             <div className="h-96 overflow-y-auto">
-              {activeChats.length === 0 ? (
+              {tickets.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-[13px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">No active chats</p>
+                  <p className="text-[13px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">No active tickets</p>
                 </div>
               ) : (
-                activeChats.map((chat) => (
+                tickets.map((ticket) => (
                   <motion.div
-                    key={chat.id}
+                    key={ticket.id}
                     whileHover={{ backgroundColor: '#F5F5F5' }}
-                    onClick={() => handleSelectChat(chat)}
+                    onClick={() => handleSelectTicket(ticket)}
                     className="p-4 border-b border-gray-100 cursor-pointer"
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">
-                            {chat.adminName || 'Unknown Admin'}
+                          <h4 className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair truncate max-w-[150px]">
+                            {ticket.subject}
                           </h4>
-                          {chat.unread > 0 && (
-                            <span className="px-1.5 py-0.5 bg-[#7C3AED] text-white text-[9px] leading-[100%] font-[600] rounded-full">
-                              {chat.unread}
-                            </span>
-                          )}
-                          <span className={`px-2 py-0.5 rounded-full text-[8px] leading-[100%] font-[500] ${
-                            chat.status === 'active' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'
-                          }`}>
-                            {chat.status || 'inactive'}
+                          <span className={`px-1.5 py-0.5 rounded-full text-[8px] leading-[100%] font-[500] ${getStatusColor(ticket.status)}`}>
+                            {ticket.status === 'in_progress' ? 'In Progress' : ticket.status}
                           </span>
                         </div>
                         <p className="text-[11px] leading-[100%] font-[400] text-[#626060] font-playfair mb-1">
-                          {chat.school || 'No school'}
+                          Ticket #{ticket.id}
                         </p>
-                        <p className="text-[12px] leading-[140%] font-[500] text-[#1E1E1E] font-playfair truncate">
-                          {chat.subject || 'No subject'}
+                        <p className="text-[12px] leading-[140%] font-[500] text-[#1E1E1E] font-playfair line-clamp-2">
+                          {ticket.description}
                         </p>
-                        <p className="text-[11px] leading-[100%] font-[400] text-[#626060] font-playfair mt-1 truncate">
-                          {chat.lastMessage || 'No messages'}
+                        <p className="text-[10px] leading-[100%] font-[400] text-[#626060] font-playfair mt-2">
+                          {ticket.messages?.length || 0} messages • {getTimeAgo(ticket.updatedAt || ticket.createdAt)}
                         </p>
                       </div>
-                      <span className="text-[9px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair whitespace-nowrap ml-2">
-                        {getTimeAgo(chat.lastMessageTime)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[9px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">
-                        {(chat.messages && chat.messages.length) || 0} messages
-                      </span>
                     </div>
                   </motion.div>
                 ))
               )}
             </div>
-          ) : selectedChat && (
+          ) : selectedTicket && (
             <>
               <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair mb-1">
-                      {selectedChat.subject || 'Support Chat'}
+                      {selectedTicket.subject}
                     </p>
                     <p className="text-[10px] leading-[100%] font-[400] text-[#626060] font-playfair">
-                      {selectedChat.adminEmail || 'No email'}
+                      Ticket #{selectedTicket.id}
                     </p>
                   </div>
-                  {selectedChat.status === 'resolved' ? (
-                    <button
-                      onClick={handleReopenChat}
-                      className="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-[9px] leading-[100%] font-[500] hover:bg-blue-200 transition-colors"
-                    >
-                      Reopen Ticket
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleResolveChat}
-                      className="px-3 py-1 bg-green-100 text-green-600 rounded-full text-[9px] leading-[100%] font-[500] hover:bg-green-200 transition-colors"
-                    >
-                      Mark Resolved
-                    </button>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className={`px-2 py-0.5 rounded-full text-[8px] leading-[100%] font-[500] ${
-                    selectedChat.status === 'active' ? 'bg-green-100 text-green-600' :
-                    selectedChat.status === 'resolved' ? 'bg-gray-100 text-gray-600' :
-                    'bg-blue-100 text-blue-600'
-                  }`}>
-                    {selectedChat.status || 'inactive'}
-                  </span>
-                  <span className="text-[9px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">
-                    Ticket #{selectedChat.ticketId}
+                  <span className={`px-2 py-1 rounded-full text-[8px] leading-[100%] font-[500] ${getStatusColor(selectedTicket.status)}`}>
+                    {selectedTicket.status === 'in_progress' ? 'In Progress' : selectedTicket.status}
                   </span>
                 </div>
               </div>
 
               <div className={chatMessages}>
-                {selectedChat.messages && selectedChat.messages.map((message) => (
+                {selectedTicket.messages?.map((msg, index) => (
                   <div
-                    key={message.id}
-                    className={`${chatMessage} ${message.sender === 'support' ? chatMessageSent : chatMessageReceived}`}
+                    key={index}
+                    className={`${chatMessage} ${msg.sender === 'super_admin' ? chatMessageSent : chatMessageReceived}`}
                   >
-                    <div className={`${chatBubble} ${message.sender === 'support' ? chatBubbleSent : chatBubbleReceived}`}>
-                      {message.sender !== 'support' && message.senderName && (
-                        <p className="text-[8px] leading-[100%] font-[600] text-[#7C3AED] mb-1 uppercase">
-                          {message.senderName.split(' ')[0] || 'Admin'}
-                        </p>
-                      )}
-                      {message.sender === 'support' && (
-                        <p className="text-[8px] leading-[100%] font-[600] text-white/70 mb-1 uppercase">You</p>
-                      )}
-                      {message.text || ''}
+                    <div className={`${chatBubble} ${msg.sender === 'super_admin' ? chatBubbleSent : chatBubbleReceived}`}>
+                      <p className="text-[8px] leading-[100%] font-[600] mb-1 opacity-70">
+                        {msg.sender === 'super_admin' ? 'You' : 'Admin'}
+                      </p>
+                      <p className="text-[13px] leading-[140%] font-[500]">{msg.content}</p>
                     </div>
-                    <div className={chatTime}>{formatTime(message.timestamp)}</div>
+                    <div className={chatTime}>{formatTime(msg.timestamp)}</div>
                   </div>
                 ))}
-                {isTyping && !disabled && (
-                  <div className={`${chatMessage} ${chatMessageReceived}`}>
-                    <div className={`${chatBubble} ${chatBubbleReceived}`}>
-                      <div className="flex gap-1">
-                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                      </div>
-                    </div>
-                  </div>
-                )}
                 <div ref={messagesEndRef} />
               </div>
 
               <div className={chatInput}>
-                {disabled ? (
+                {isTicketClosed ? (
                   <input
                     type="text"
-                    value="This ticket is closed. Reopen to send messages."
+                    value="This ticket is closed"
                     disabled
                     className={chatDisabledInput}
                   />
@@ -451,13 +294,14 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
                       onKeyPress={handleKeyPress}
                       placeholder="Type your reply..."
                       className={chatInputField}
+                      disabled={sending}
                     />
                     <button
                       onClick={handleSendMessage}
-                      disabled={!newMessage.trim()}
-                      className={`${chatSendButton} ${!newMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      disabled={!newMessage.trim() || sending}
+                      className={`${chatSendButton} ${(!newMessage.trim() || sending) ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                      Send
+                      {sending ? '...' : 'Send'}
                     </button>
                   </>
                 )}

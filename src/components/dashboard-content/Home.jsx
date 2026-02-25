@@ -1,5 +1,5 @@
+// components/dashboard-content/Home.jsx
 'use client';
-
 import { useSuperAdminAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
@@ -8,7 +8,6 @@ import {
   homeHeader,
   homeTitle,
   homeSubtitle,
-  homeStatsGrid,
   homeStatCard,
   homeStatCardTop,
   homeStatCardIcon,
@@ -21,19 +20,12 @@ import {
   homeContentGrid,
   homeCard,
   homeCardTitle,
-  homeActivityItem,
-  homeActivityLeft,
-  homeActivityIcon,
-  homeActivitySubject,
-  homeActivityTime,
-  homeActivityContinue,
   homeSubjectGrid,
   homeSubjectButton,
   homeSubjectInner,
   homeSubjectIcon,
   homeSubjectName,
   homeSubjectCount,
-  homeViewAllButton,
   homeBanner,
   homeBannerContent,
   homeBannerTitle,
@@ -53,6 +45,7 @@ export default function SuperAdminHome({ setActiveSection }) {
     totalSchools: 0,
     activeSchools: 0,
     totalAdmins: 0,
+    activeAdmins: 0,
     totalStudents: 0,
     totalExams: 0,
     openTickets: 0,
@@ -68,16 +61,7 @@ export default function SuperAdminHome({ setActiveSection }) {
     try {
       const response = await fetchWithAuth('/super-admin/dashboard/stats');
       const data = await response.json();
-      setStats({
-        totalSchools: 0,
-        activeSchools: 0,
-        totalAdmins: 0,
-        totalStudents: 0,
-        totalExams: 0,
-        openTickets: 0,
-        totalRevenue: 0,
-        ...(data.stats || {})
-      });
+      setStats(data.stats || {});
     } catch (error) {
       console.error('Failed to fetch stats:', error);
     } finally {

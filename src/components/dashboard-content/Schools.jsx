@@ -1,5 +1,5 @@
+// components/dashboard-content/Schools.jsx
 'use client';
-
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSuperAdminAuth } from '../../context/AuthContext';
@@ -87,7 +87,7 @@ export default function Schools({ setActiveSection }) {
     }
   };
 
-  const handleEditSchool = async () => {
+  const handleUpdateSchool = async () => {
     if (!formData.name || !formData.address) {
       toast.error('School name and address are required');
       return;
@@ -139,6 +139,28 @@ export default function Schools({ setActiveSection }) {
     }
   };
 
+  const handleToggleStatus = async (school) => {
+    const newStatus = school.status === 'active' ? 'suspended' : 'active';
+    const toastId = toast.loading(`${newStatus === 'active' ? 'Activating' : 'Suspending'} school...`);
+
+    try {
+      const response = await fetchWithAuth(`/super-admin/schools/${school.id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        toast.success(`School ${newStatus} successfully!`, { id: toastId });
+        fetchSchools();
+      } else {
+        const data = await response.json();
+        toast.error(data.message || `Failed to ${newStatus} school`, { id: toastId });
+      }
+    } catch (error) {
+      toast.error('Network error', { id: toastId });
+    }
+  };
+
   const openEditModal = (school) => {
     setSelectedSchool(school);
     setFormData({
@@ -183,7 +205,7 @@ export default function Schools({ setActiveSection }) {
         <p className={examsSubtitle}>Manage all schools across Kogi State</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         <div className={superAdminStatCard}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-[32px]">🏫</span>
@@ -215,13 +237,13 @@ export default function Schools({ setActiveSection }) {
               placeholder="Search schools by name, email or address..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1565c0] text-[13px] font-playfair"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
             />
           </div>
           <div className="flex gap-3 w-full md:w-auto">
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-6 py-2.5 bg-[#1565c0] text-white rounded-lg hover:bg-[#0d47a1] transition-colors font-[600] text-[13px] font-playfair whitespace-nowrap"
+              className="px-6 py-2.5 bg-[#7C3AED] text-white rounded-lg hover:bg-[#6D28D9] transition-colors font-[600] text-[13px] font-playfair whitespace-nowrap"
             >
               + Add New School
             </button>
@@ -231,7 +253,7 @@ export default function Schools({ setActiveSection }) {
 
       {loading ? (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <div className="w-12 h-12 border-4 border-[#1565c0] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-12 h-12 border-4 border-[#7C3AED] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-[14px] text-[#626060] font-playfair">Loading schools...</p>
         </div>
       ) : (
@@ -274,11 +296,14 @@ export default function Schools({ setActiveSection }) {
                       <p className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">{school.studentCount || 0}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${
-                        school.status === 'active' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'
-                      } font-playfair`}>
-                        {school.status || 'active'}
-                      </span>
+                      <button
+                        onClick={() => handleToggleStatus(school)}
+                        className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] transition-colors ${
+                          school.status === 'active' ? 'bg-green-100 text-green-600 hover:bg-red-100 hover:text-red-600' : 'bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-600'
+                        } font-playfair`}
+                      >
+                        {school.status === 'active' ? 'Active' : 'Suspended'}
+                      </button>
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">
@@ -289,7 +314,7 @@ export default function Schools({ setActiveSection }) {
                       <div className="flex gap-2">
                         <button
                           onClick={() => openEditModal(school)}
-                          className="p-2 text-[#1565c0] hover:bg-[#E8F0FE] rounded-md transition-colors"
+                          className="p-2 text-[#7C3AED] hover:bg-[#F5F3FF] rounded-md transition-colors"
                         >
                           ✏️
                         </button>
@@ -339,7 +364,7 @@ export default function Schools({ setActiveSection }) {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#1565c0] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
                     placeholder="e.g., Kogi State College"
                   />
                 </div>
@@ -350,7 +375,7 @@ export default function Schools({ setActiveSection }) {
                     name="address"
                     value={formData.address}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#1565c0] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
                     placeholder="123 Education Road, Lokoja"
                   />
                 </div>
@@ -361,7 +386,7 @@ export default function Schools({ setActiveSection }) {
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#1565c0] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
                     placeholder="08012345678"
                   />
                 </div>
@@ -372,7 +397,7 @@ export default function Schools({ setActiveSection }) {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#1565c0] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
                     placeholder="info@school.edu.ng"
                   />
                 </div>
@@ -383,7 +408,7 @@ export default function Schools({ setActiveSection }) {
                 </button>
                 <button
                   onClick={handleCreateSchool}
-                  className="px-4 py-2 bg-[#1565c0] text-white rounded-md hover:bg-[#0d47a1] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  className="px-4 py-2 bg-[#7C3AED] text-white rounded-md hover:bg-[#6D28D9] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
                 >
                   Create School
                 </button>
@@ -416,7 +441,7 @@ export default function Schools({ setActiveSection }) {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#1565c0] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
                   />
                 </div>
                 <div>
@@ -426,7 +451,7 @@ export default function Schools({ setActiveSection }) {
                     name="address"
                     value={formData.address}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#1565c0] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
                   />
                 </div>
                 <div>
@@ -436,7 +461,7 @@ export default function Schools({ setActiveSection }) {
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#1565c0] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
                   />
                 </div>
                 <div>
@@ -446,7 +471,7 @@ export default function Schools({ setActiveSection }) {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#1565c0] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
                   />
                 </div>
               </div>
@@ -455,8 +480,8 @@ export default function Schools({ setActiveSection }) {
                   Cancel
                 </button>
                 <button
-                  onClick={handleEditSchool}
-                  className="px-4 py-2 bg-[#1565c0] text-white rounded-md hover:bg-[#0d47a1] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  onClick={handleUpdateSchool}
+                  className="px-4 py-2 bg-[#7C3AED] text-white rounded-md hover:bg-[#6D28D9] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
                 >
                   Update School
                 </button>
