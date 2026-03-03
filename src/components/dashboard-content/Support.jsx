@@ -21,7 +21,7 @@ import {
   superAdminStatLabel
 } from '../../styles/styles';
 
-export default function Support({ setActiveSection, onOpenChat }) {
+export default function Support({ onOpenChat }) {
   const { fetchWithAuth } = useSuperAdminAuth();
   const [tickets, setTickets] = useState([]);
   const [schools, setSchools] = useState([]);
@@ -52,15 +52,33 @@ export default function Support({ setActiveSection, onOpenChat }) {
         fetchWithAuth('/super-admin/schools')
       ]);
 
-      const ticketsData = await ticketsRes.json();
-      const schoolsData = await schoolsRes.json();
-
-      setTickets(ticketsData.tickets || []);
-      setSchools(schoolsData.schools || []);
+      if (ticketsRes.ok) {
+        const ticketsData = await ticketsRes.json();
+        setTickets(ticketsData.tickets || []);
+      }
+      
+      if (schoolsRes.ok) {
+        const schoolsData = await schoolsRes.json();
+        setSchools(schoolsData.schools || []);
+      }
     } catch (error) {
       toast.error('Failed to load tickets');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTicketDetails = async (ticketId) => {
+    try {
+      const response = await fetchWithAuth(`/super-admin/tickets/${ticketId}`);
+      if (response.ok) {
+        const data = await response.json();
+        return data.ticket;
+      }
+      return null;
+    } catch (error) {
+      toast.error('Failed to fetch ticket details');
+      return null;
     }
   };
 
@@ -117,8 +135,11 @@ export default function Support({ setActiveSection, onOpenChat }) {
       if (response.ok) {
         toast.success('Reply sent successfully', { id: toastId });
         setReplyMessage('');
-        fetchData();
-        setSelectedTicket(data.ticket);
+        const updatedTicket = await fetchTicketDetails(selectedTicket.id);
+        if (updatedTicket) {
+          setSelectedTicket(updatedTicket);
+          setTickets(tickets.map(t => t.id === updatedTicket.id ? updatedTicket : t));
+        }
       } else {
         toast.error(data.message || 'Failed to send reply', { id: toastId });
       }
@@ -128,7 +149,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
   };
 
   const handleUpdateStatus = async (ticket, newStatus) => {
-    const toastId = toast.loading(`Updating ticket status...`);
+    const toastId = toast.loading('Updating ticket status...');
 
     try {
       const response = await fetchWithAuth(`/super-admin/tickets/${ticket.id}/status`, {
@@ -139,7 +160,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
       if (response.ok) {
         toast.success(`Ticket marked as ${newStatus}`, { id: toastId });
         fetchData();
-        if (showTicketModal && selectedTicket?.id === ticket.id) {
+        if (selectedTicket?.id === ticket.id) {
           setSelectedTicket({ ...selectedTicket, status: newStatus });
         }
       } else {
@@ -149,6 +170,16 @@ export default function Support({ setActiveSection, onOpenChat }) {
     } catch (error) {
       toast.error('Network error', { id: toastId });
     }
+  };
+
+  const handleViewTicket = async (ticket) => {
+    setLoading(true);
+    const detailedTicket = await fetchTicketDetails(ticket.id);
+    if (detailedTicket) {
+      setSelectedTicket(detailedTicket);
+      setShowTicketModal(true);
+    }
+    setLoading(false);
   };
 
   const formatDate = (timestamp) => {
@@ -276,10 +307,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
               className={`bg-white rounded-xl border border-gray-200 p-6 cursor-pointer hover:shadow-md transition-all ${
                 ticket.status === 'closed' ? 'opacity-75' : ''
               }`}
-              onClick={() => {
-                setSelectedTicket(ticket);
-                setShowTicketModal(true);
-              }}
+              onClick={() => handleViewTicket(ticket)}
             >
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
                 <div className="flex-1">
@@ -472,6 +500,16 @@ export default function Support({ setActiveSection, onOpenChat }) {
                     </p>
                   </div>
                 </div>
+                <button
+                  onClick={() => {
+                    setShowTicketModal(false);
+                    setSelectedTicket(null);
+                    setReplyMessage('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600 text-xl"
+                >
+                  ×
+                </button>
               </div>
 
               <div className="border-t border-gray-200 pt-6 mb-6">

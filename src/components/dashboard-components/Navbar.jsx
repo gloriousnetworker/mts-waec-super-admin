@@ -1,5 +1,5 @@
+// components/dashboard-components/Navbar.jsx
 'use client';
-
 import { useSuperAdminAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
@@ -27,7 +27,6 @@ import {
   navbarProfile,
   navbarProfileButton,
   navbarProfileAvatar,
-  navbarProfileAvatarText,
   navbarProfileInfo,
   navbarProfileName,
   navbarProfileId,
@@ -52,6 +51,7 @@ const BASE_URL = 'https://cbt-simulator-backend.vercel.app';
 export default function SuperAdminNavbar({ activeSection, setActiveSection, onMenuClick, onChatClick }) {
   const { user, logout, refreshUser } = useSuperAdminAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [liveUser, setLiveUser] = useState(null);
 
   useEffect(() => {
@@ -70,6 +70,16 @@ export default function SuperAdminNavbar({ activeSection, setActiveSection, onMe
     fetchMe();
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.profile-container')) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   const displayUser = liveUser || user;
 
   const getInitials = (name) => {
@@ -79,6 +89,7 @@ export default function SuperAdminNavbar({ activeSection, setActiveSection, onMe
 
   const handleLogout = () => {
     logout();
+    setShowLogoutConfirm(false);
   };
 
   const navSections = [
@@ -88,6 +99,7 @@ export default function SuperAdminNavbar({ activeSection, setActiveSection, onMe
     { id: 'students', label: 'Students', icon: '🧑‍🎓' },
     { id: 'reports', label: 'Reports', icon: '📊' },
     { id: 'support', label: 'Support', icon: '🎫' },
+    { id: 'analytics', label: 'Analytics', icon: '📈' },
   ];
 
   return (
@@ -160,8 +172,11 @@ export default function SuperAdminNavbar({ activeSection, setActiveSection, onMe
                 <span className={navbarNotificationBadge}></span>
               </button>
 
-              <div className={navbarProfile}>
-                <button className={navbarProfileButton}>
+              <div className="profile-container relative">
+                <button
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className={navbarProfileButton}
+                >
                   <div className={navbarProfileAvatar}>
                     <div className="w-9 h-9 rounded-full bg-[#7C3AED] flex items-center justify-center text-white text-[14px] leading-[100%] font-[600]">
                       {getInitials(displayUser?.name)}
@@ -169,36 +184,47 @@ export default function SuperAdminNavbar({ activeSection, setActiveSection, onMe
                   </div>
                   <div className={navbarProfileInfo}>
                     <p className={navbarProfileName}>{displayUser?.name || 'Super Admin'}</p>
-                    <p className={navbarProfileId}>{displayUser?.role === 'super_admin' ? 'Super Administrator' : displayUser?.role || 'Mega Tech Solutions'}</p>
+                    <p className={navbarProfileId}>Super Administrator</p>
                   </div>
                 </button>
 
-                <div className={navbarDropdown}>
-                  <div className={navbarDropdownHeader}>
-                    <p className={navbarDropdownHeaderName}>{displayUser?.name || 'Super Admin'}</p>
-                    <p className={navbarDropdownHeaderEmail}>{displayUser?.email || ''}</p>
+                {showDropdown && (
+                  <div className={navbarDropdown}>
+                    <div className={navbarDropdownHeader}>
+                      <p className={navbarDropdownHeaderName}>{displayUser?.name || 'Super Admin'}</p>
+                      <p className={navbarDropdownHeaderEmail}>{displayUser?.email || ''}</p>
+                    </div>
+                    <div className={navbarDropdownMenu}>
+                      <button
+                        onClick={() => {
+                          setActiveSection('settings');
+                          setShowDropdown(false);
+                        }}
+                        className={navbarDropdownItem}
+                      >
+                        Profile Settings
+                      </button>
+                      <button
+                        onClick={() => {
+                          onChatClick();
+                          setShowDropdown(false);
+                        }}
+                        className={navbarDropdownItem}
+                      >
+                        Support Chat
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowLogoutConfirm(true);
+                          setShowDropdown(false);
+                        }}
+                        className={navbarDropdownItemDanger}
+                      >
+                        Logout
+                      </button>
+                    </div>
                   </div>
-                  <div className={navbarDropdownMenu}>
-                    <button
-                      onClick={() => setActiveSection('settings')}
-                      className={navbarDropdownItem}
-                    >
-                      Profile Settings
-                    </button>
-                    <button
-                      onClick={onChatClick}
-                      className={navbarDropdownItem}
-                    >
-                      Support Chat
-                    </button>
-                    <button
-                      onClick={() => setShowLogoutConfirm(true)}
-                      className={navbarDropdownItemDanger}
-                    >
-                      Logout
-                    </button>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>

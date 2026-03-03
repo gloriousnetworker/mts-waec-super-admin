@@ -21,7 +21,7 @@ import {
   superAdminStatLabel
 } from '../../styles/styles';
 
-export default function Admins({ setActiveSection }) {
+export default function Admins() {
   const { fetchWithAuth } = useSuperAdminAuth();
   const [admins, setAdmins] = useState([]);
   const [schools, setSchools] = useState([]);
@@ -29,11 +29,18 @@ export default function Admins({ setActiveSection }) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSchool, setFilterSchool] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterSubscription, setFilterSubscription] = useState('all');
+  const [filterPlan, setFilterPlan] = useState('all');
+  const [subscriptionPlans, setSubscriptionPlans] = useState([
+    { id: 'monthly', name: 'Monthly', price: 15000 },
+    { id: 'termly', name: 'Termly', price: 42000 },
+    { id: 'yearly', name: 'Yearly', price: 120000 },
+    { id: 'unlimited', name: 'Unlimited', price: 500000 }
+  ]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -43,13 +50,6 @@ export default function Admins({ setActiveSection }) {
       plan: 'monthly'
     }
   });
-
-  const subscriptionPlans = [
-    { id: 'monthly', name: 'Monthly', price: 15000 },
-    { id: 'termly', name: 'Termly', price: 42000 },
-    { id: 'yearly', name: 'Yearly', price: 120000 },
-    { id: 'unlimited', name: 'Unlimited', price: 500000 }
-  ];
 
   useEffect(() => {
     fetchData();
@@ -63,11 +63,15 @@ export default function Admins({ setActiveSection }) {
         fetchWithAuth('/super-admin/schools')
       ]);
 
-      const adminsData = await adminsRes.json();
-      const schoolsData = await schoolsRes.json();
-
-      setAdmins(adminsData.admins || []);
-      setSchools(schoolsData.schools || []);
+      if (adminsRes.ok) {
+        const adminsData = await adminsRes.json();
+        setAdmins(adminsData.admins || []);
+      }
+      
+      if (schoolsRes.ok) {
+        const schoolsData = await schoolsRes.json();
+        setSchools(schoolsData.schools || []);
+      }
     } catch (error) {
       toast.error('Failed to load data');
     } finally {
@@ -206,6 +210,54 @@ export default function Admins({ setActiveSection }) {
     }
   };
 
+  const handleActivateSubscription = async (admin) => {
+    if (!admin.subscription?.plan) {
+      toast.error('Please select a subscription plan first');
+      return;
+    }
+
+    const toastId = toast.loading('Activating subscription...');
+
+    try {
+      const response = await fetchWithAuth(`/super-admin/admins/${admin.id}/subscription/activate`, {
+        method: 'POST',
+        body: JSON.stringify({ plan: admin.subscription.plan })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Subscription activated successfully!', { id: toastId });
+        setShowSubscriptionModal(false);
+        fetchData();
+      } else {
+        toast.error(data.message || 'Failed to activate subscription', { id: toastId });
+      }
+    } catch (error) {
+      toast.error('Network error', { id: toastId });
+    }
+  };
+
+  const handleDeactivateSubscription = async (admin) => {
+    const toastId = toast.loading('Deactivating subscription...');
+
+    try {
+      const response = await fetchWithAuth(`/super-admin/admins/${admin.id}/subscription/deactivate`, {
+        method: 'POST'
+      });
+
+      if (response.ok) {
+        toast.success('Subscription deactivated successfully!', { id: toastId });
+        fetchData();
+      } else {
+        const data = await response.json();
+        toast.error(data.message || 'Failed to deactivate subscription', { id: toastId });
+      }
+    } catch (error) {
+      toast.error('Network error', { id: toastId });
+    }
+  };
+
   const openEditModal = (admin) => {
     setSelectedAdmin(admin);
     setFormData({
@@ -221,6 +273,15 @@ export default function Admins({ setActiveSection }) {
   const openDeleteModal = (admin) => {
     setSelectedAdmin(admin);
     setShowDeleteModal(true);
+  };
+
+  const openSubscriptionModal = (admin) => {
+    setSelectedAdmin(admin);
+    setFormData(prev => ({
+      ...prev,
+      subscription: admin.subscription || { plan: 'monthly' }
+    }));
+    setShowSubscriptionModal(true);
   };
 
   const formatDate = (timestamp) => {
@@ -254,8 +315,8 @@ export default function Admins({ setActiveSection }) {
                          (admin.email || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSchool = filterSchool === 'all' || admin.schoolId === filterSchool;
     const matchesStatus = filterStatus === 'all' || admin.status === filterStatus;
-    const matchesSubscription = filterSubscription === 'all' || admin.subscription?.plan === filterSubscription;
-    return matchesSearch && matchesSchool && matchesStatus && matchesSubscription;
+    const matchesPlan = filterPlan === 'all' || admin.subscription?.plan === filterPlan;
+    return matchesSearch && matchesSchool && matchesStatus && matchesPlan;
   });
 
   const stats = {
@@ -301,7 +362,7 @@ export default function Admins({ setActiveSection }) {
             <span className="text-[32px]">📅</span>
             <span className={superAdminStatValue}>{stats.yearly}</span>
           </div>
-          <p className={superAdminStatLabel}>Yearly</p>
+          <p className={superAdminStatLabel}>Yearly Plans</p>
         </div>
       </div>
 
@@ -338,8 +399,8 @@ export default function Admins({ setActiveSection }) {
               <option value="expired">Expired</option>
             </select>
             <select
-              value={filterSubscription}
-              onChange={(e) => setFilterSubscription(e.target.value)}
+              value={filterPlan}
+              onChange={(e) => setFilterPlan(e.target.value)}
               className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
             >
               <option value="all">All Plans</option>
@@ -436,14 +497,23 @@ export default function Admins({ setActiveSection }) {
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
                         <button
+                          onClick={() => openSubscriptionModal(admin)}
+                          className="p-2 text-[#10B981] hover:bg-[#D1FAE5] rounded-md transition-colors"
+                          title="Manage Subscription"
+                        >
+                          💳
+                        </button>
+                        <button
                           onClick={() => openEditModal(admin)}
                           className="p-2 text-[#7C3AED] hover:bg-[#F5F3FF] rounded-md transition-colors"
+                          title="Edit Admin"
                         >
                           ✏️
                         </button>
                         <button
                           onClick={() => openDeleteModal(admin)}
                           className="p-2 text-[#DC2626] hover:bg-[#FEF2F2] rounded-md transition-colors"
+                          title="Delete Admin"
                         >
                           🗑️
                         </button>
@@ -613,6 +683,75 @@ export default function Admins({ setActiveSection }) {
                   className="px-4 py-2 bg-[#7C3AED] text-white rounded-md hover:bg-[#6D28D9] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
                 >
                   Update Admin
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showSubscriptionModal && selectedAdmin && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={modalOverlay}
+            onClick={() => setShowSubscriptionModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="bg-white rounded-xl p-6 max-w-md w-full mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className={modalTitle}>Manage Subscription</h3>
+              <p className="text-[13px] leading-[140%] text-[#626060] mb-4 font-playfair">
+                {selectedAdmin.name} - {selectedAdmin.email}
+              </p>
+              
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">Current Plan</label>
+                  <p className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">
+                    {selectedAdmin.subscription?.plan || 'No active plan'}
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">New Plan</label>
+                  <select
+                    value={formData.subscription.plan}
+                    onChange={(e) => handleSubscriptionChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                  >
+                    {subscriptionPlans.map(plan => (
+                      <option key={plan.id} value={plan.id}>{plan.name} - ₦{plan.price.toLocaleString()}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                {selectedAdmin.subscription?.active ? (
+                  <button
+                    onClick={() => handleDeactivateSubscription(selectedAdmin)}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  >
+                    Deactivate
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleActivateSubscription(selectedAdmin)}
+                    className="flex-1 px-4 py-2 bg-[#7C3AED] text-white rounded-md hover:bg-[#6D28D9] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  >
+                    Activate
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowSubscriptionModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-[13px] font-playfair"
+                >
+                  Cancel
                 </button>
               </div>
             </motion.div>

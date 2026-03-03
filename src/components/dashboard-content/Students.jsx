@@ -1,5 +1,5 @@
+// components/dashboard-content/Students.jsx
 'use client';
-
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSuperAdminAuth } from '../../context/AuthContext';
@@ -20,7 +20,7 @@ import {
   superAdminStatLabel
 } from '../../styles/styles';
 
-export default function Students({ setActiveSection }) {
+export default function Students() {
   const { fetchWithAuth } = useSuperAdminAuth();
   const [students, setStudents] = useState([]);
   const [schools, setSchools] = useState([]);
@@ -30,7 +30,6 @@ export default function Students({ setActiveSection }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSchool, setFilterSchool] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterPerformance, setFilterPerformance] = useState('all');
   const [sortBy, setSortBy] = useState('name');
 
   useEffect(() => {
@@ -45,11 +44,15 @@ export default function Students({ setActiveSection }) {
         fetchWithAuth('/super-admin/schools')
       ]);
 
-      const studentsData = await studentsRes.json();
-      const schoolsData = await schoolsRes.json();
-
-      setStudents(studentsData.students || []);
-      setSchools(schoolsData.schools || []);
+      if (studentsRes.ok) {
+        const studentsData = await studentsRes.json();
+        setStudents(studentsData.students || []);
+      }
+      
+      if (schoolsRes.ok) {
+        const schoolsData = await schoolsRes.json();
+        setSchools(schoolsData.schools || []);
+      }
     } catch (error) {
       toast.error('Failed to load data');
     } finally {
@@ -60,11 +63,15 @@ export default function Students({ setActiveSection }) {
   const fetchStudentDetails = async (student) => {
     try {
       const response = await fetchWithAuth(`/admin/students/${student.id}`);
-      const data = await response.json();
-      setSelectedStudent({ ...student, ...data });
-      setShowDetailsModal(true);
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedStudent({ ...student, ...data });
+        setShowDetailsModal(true);
+      } else {
+        toast.error('Failed to load student details');
+      }
     } catch (error) {
-      toast.error('Failed to load student details');
+      toast.error('Network error');
     }
   };
 
@@ -76,32 +83,10 @@ export default function Students({ setActiveSection }) {
     return new Date(timestamp).toLocaleDateString();
   };
 
-  const formatTime = (timestamp) => {
-    if (!timestamp) return 'N/A';
-    if (timestamp._seconds) {
-      return new Date(timestamp._seconds * 1000).toLocaleTimeString();
-    }
-    return new Date(timestamp).toLocaleTimeString();
-  };
-
   const getStatusColor = (status) => {
     return status === 'active' 
       ? 'bg-green-100 text-green-600' 
       : 'bg-gray-100 text-gray-600';
-  };
-
-  const getPerformanceColor = (score) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 70) return 'text-blue-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getPerformanceBadge = (score) => {
-    if (score >= 80) return 'bg-green-100 text-green-600';
-    if (score >= 70) return 'bg-blue-100 text-blue-600';
-    if (score >= 60) return 'bg-yellow-100 text-yellow-600';
-    return 'bg-red-100 text-red-600';
   };
 
   const filteredStudents = students.filter(student => {
@@ -113,14 +98,7 @@ export default function Students({ setActiveSection }) {
     const matchesSchool = filterSchool === 'all' || student.schoolId === filterSchool;
     const matchesStatus = filterStatus === 'all' || student.status === filterStatus;
     
-    let matchesPerformance = true;
-    const avgScore = student.avgScore || 0;
-    if (filterPerformance === 'excellent') matchesPerformance = avgScore >= 80;
-    if (filterPerformance === 'good') matchesPerformance = avgScore >= 70 && avgScore < 80;
-    if (filterPerformance === 'average') matchesPerformance = avgScore >= 60 && avgScore < 70;
-    if (filterPerformance === 'poor') matchesPerformance = avgScore < 60;
-    
-    return matchesSearch && matchesSchool && matchesStatus && matchesPerformance;
+    return matchesSearch && matchesSchool && matchesStatus;
   });
 
   const sortedStudents = [...filteredStudents].sort((a, b) => {
@@ -129,7 +107,6 @@ export default function Students({ setActiveSection }) {
       const nameB = `${b.firstName || ''} ${b.lastName || ''}`;
       return nameA.localeCompare(nameB);
     }
-    if (sortBy === 'score') return (b.avgScore || 0) - (a.avgScore || 0);
     if (sortBy === 'recent') {
       const dateA = a.updatedAt?._seconds || 0;
       const dateB = b.updatedAt?._seconds || 0;
@@ -141,10 +118,7 @@ export default function Students({ setActiveSection }) {
   const stats = {
     total: students.length,
     active: students.filter(s => s.status === 'active').length,
-    avgScore: Math.round(students.reduce((acc, s) => acc + (s.avgScore || 0), 0) / (students.length || 1)),
-    totalExams: students.reduce((acc, s) => acc + (s.examsTaken || 0), 0),
-    excellent: students.filter(s => (s.avgScore || 0) >= 80).length,
-    passRate: Math.round(students.filter(s => (s.avgScore || 0) >= 50).length / (students.length || 1) * 100)
+    totalExams: students.reduce((acc, s) => acc + (s.examsTaken || 0), 0)
   };
 
   return (
@@ -154,7 +128,7 @@ export default function Students({ setActiveSection }) {
         <p className={examsSubtitle}>Track all students across Kogi State</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         <div className={superAdminStatCard}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-[32px]">🧑‍🎓</span>
@@ -176,27 +150,6 @@ export default function Students({ setActiveSection }) {
           </div>
           <p className={superAdminStatLabel}>Exams Taken</p>
         </div>
-        <div className={superAdminStatCard}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[32px]">📊</span>
-            <span className={superAdminStatValue}>{stats.avgScore}%</span>
-          </div>
-          <p className={superAdminStatLabel}>Avg Score</p>
-        </div>
-        <div className={superAdminStatCard}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[32px]">⭐</span>
-            <span className={superAdminStatValue}>{stats.excellent}</span>
-          </div>
-          <p className={superAdminStatLabel}>Excellent (80%+)</p>
-        </div>
-        <div className={superAdminStatCard}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[32px]">✅</span>
-            <span className={superAdminStatValue}>{stats.passRate}%</span>
-          </div>
-          <p className={superAdminStatLabel}>Pass Rate</p>
-        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
@@ -207,14 +160,14 @@ export default function Students({ setActiveSection }) {
               placeholder="Search students by name, email, login ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1565c0] text-[13px] font-playfair"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
             />
           </div>
           <div className="flex flex-wrap gap-3 w-full lg:w-auto">
             <select
               value={filterSchool}
               onChange={(e) => setFilterSchool(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1565c0] text-[13px] font-playfair"
+              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
             >
               <option value="all">All Schools</option>
               {schools.map(school => (
@@ -224,30 +177,18 @@ export default function Students({ setActiveSection }) {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1565c0] text-[13px] font-playfair"
+              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
             <select
-              value={filterPerformance}
-              onChange={(e) => setFilterPerformance(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1565c0] text-[13px] font-playfair"
-            >
-              <option value="all">All Performance</option>
-              <option value="excellent">Excellent (80%+)</option>
-              <option value="good">Good (70-79%)</option>
-              <option value="average">Average (60-69%)</option>
-              <option value="poor">Poor (Below 60%)</option>
-            </select>
-            <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1565c0] text-[13px] font-playfair"
+              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
             >
               <option value="name">Sort by Name</option>
-              <option value="score">Sort by Score</option>
               <option value="recent">Sort by Recent</option>
             </select>
           </div>
@@ -256,7 +197,7 @@ export default function Students({ setActiveSection }) {
 
       {loading ? (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <div className="w-12 h-12 border-4 border-[#1565c0] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-12 h-12 border-4 border-[#7C3AED] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-[14px] text-[#626060] font-playfair">Loading students...</p>
         </div>
       ) : (
@@ -317,7 +258,7 @@ export default function Students({ setActiveSection }) {
                     <td className="px-6 py-4">
                       <button
                         onClick={() => fetchStudentDetails(student)}
-                        className="p-2 text-[#1565c0] hover:bg-[#E8F0FE] rounded-md transition-colors"
+                        className="p-2 text-[#7C3AED] hover:bg-[#F5F3FF] rounded-md transition-colors"
                       >
                         👁️
                       </button>
@@ -377,11 +318,7 @@ export default function Students({ setActiveSection }) {
                       </div>
                       <div>
                         <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Email</p>
-                        <p className="text-[13px] leading-[100%] font-[500] text-[#1565c0] font-playfair mt-1">{selectedStudent.email}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">NIN</p>
-                        <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair mt-1">{selectedStudent.nin || 'N/A'}</p>
+                        <p className="text-[13px] leading-[100%] font-[500] text-[#7C3AED] font-playfair mt-1">{selectedStudent.email}</p>
                       </div>
                       <div>
                         <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Phone</p>
@@ -408,12 +345,6 @@ export default function Students({ setActiveSection }) {
                       <div>
                         <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Login ID</p>
                         <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair mt-1">{selectedStudent.loginId}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Date of Birth</p>
-                        <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair mt-1">
-                          {selectedStudent.dateOfBirth ? new Date(selectedStudent.dateOfBirth).toLocaleDateString() : 'N/A'}
-                        </p>
                       </div>
                       <div>
                         <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Subjects</p>

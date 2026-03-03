@@ -21,7 +21,6 @@ const chatTime = "text-[9px] leading-[100%] font-[400] text-[#9CA3AF] mt-1 font-
 const chatInput = "border-t border-gray-200 p-4 flex gap-2";
 const chatInputField = "flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair";
 const chatSendButton = "px-4 py-2 bg-[#7C3AED] text-white rounded-md hover:bg-[#6D28D9] transition-colors font-playfair text-[13px] leading-[100%] font-[600]";
-const chatDisabledInput = "flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-400 text-[13px] font-playfair cursor-not-allowed";
 
 export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null }) {
   const { user, fetchWithAuth } = useSuperAdminAuth();
@@ -45,11 +44,10 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
       setView('list');
       return;
     }
-    if (initialTicketId) {
+    if (initialTicketId && tickets.length > 0) {
       const ticket = tickets.find(t => t.id === initialTicketId);
       if (ticket) {
-        setSelectedTicket(ticket);
-        setView('chat');
+        handleSelectTicket(ticket);
       }
     }
   }, [isOpen, initialTicketId, tickets]);
@@ -62,8 +60,10 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
     setLoading(true);
     try {
       const response = await fetchWithAuth('/super-admin/tickets?status=open,in_progress');
-      const data = await response.json();
-      setTickets(data.tickets || []);
+      if (response.ok) {
+        const data = await response.json();
+        setTickets(data.tickets || []);
+      }
     } catch (error) {
       console.error('Failed to fetch tickets:', error);
     } finally {
@@ -74,8 +74,11 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
   const fetchTicketDetails = async (ticketId) => {
     try {
       const response = await fetchWithAuth(`/super-admin/tickets/${ticketId}`);
-      const data = await response.json();
-      return data.ticket;
+      if (response.ok) {
+        const data = await response.json();
+        return data.ticket;
+      }
+      return null;
     } catch (error) {
       console.error('Failed to fetch ticket details:', error);
       return null;
@@ -112,7 +115,6 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
       if (response.ok) {
         setSelectedTicket(data.ticket);
         setNewMessage('');
-        
         setTickets(prev => prev.map(t => 
           t.id === selectedTicket.id 
             ? { ...t, messages: data.ticket.messages, updatedAt: data.ticket.updatedAt }
@@ -141,20 +143,6 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
       return new Date(timestamp._seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const getTimeAgo = (timestamp) => {
-    if (!timestamp) return '';
-    const now = new Date();
-    const past = timestamp._seconds ? new Date(timestamp._seconds * 1000) : new Date(timestamp);
-    const diffMs = now - past;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-    
-    if (diffMins < 60) return `${diffMins} min ago`;
-    if (diffHours < 24) return `${diffHours} hour ago`;
-    return `${diffDays} day ago`;
   };
 
   const getStatusColor = (status) => {
@@ -233,7 +221,7 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
                           {ticket.description}
                         </p>
                         <p className="text-[10px] leading-[100%] font-[400] text-[#626060] font-playfair mt-2">
-                          {ticket.messages?.length || 0} messages • {getTimeAgo(ticket.updatedAt || ticket.createdAt)}
+                          {ticket.messages?.length || 0} messages
                         </p>
                       </div>
                     </div>
@@ -283,7 +271,7 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
                     type="text"
                     value="This ticket is closed"
                     disabled
-                    className={chatDisabledInput}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-400 text-[13px] font-playfair cursor-not-allowed"
                   />
                 ) : (
                   <>

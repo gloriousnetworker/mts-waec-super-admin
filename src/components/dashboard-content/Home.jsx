@@ -51,21 +51,43 @@ export default function SuperAdminHome({ setActiveSection }) {
     openTickets: 0,
     totalRevenue: 0
   });
+  const [subscriptionStats, setSubscriptionStats] = useState({
+    totalRevenue: 0,
+    monthly: 0,
+    termly: 0,
+    yearly: 0,
+    unlimited: 0
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchStats();
+    fetchSubscriptionStats();
   }, []);
 
   const fetchStats = async () => {
     try {
       const response = await fetchWithAuth('/super-admin/dashboard/stats');
-      const data = await response.json();
-      setStats(data.stats || {});
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data.stats || {});
+      }
     } catch (error) {
       console.error('Failed to fetch stats:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSubscriptionStats = async () => {
+    try {
+      const response = await fetchWithAuth('/super-admin/subscription/stats');
+      if (response.ok) {
+        const data = await response.json();
+        setSubscriptionStats(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch subscription stats:', error);
     }
   };
 
@@ -90,29 +112,90 @@ export default function SuperAdminHome({ setActiveSection }) {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'Total Schools', value: stats.totalSchools, icon: '🏫' },
-          { label: 'Active Schools', value: stats.activeSchools, icon: '✅' },
-          { label: 'Total Admins', value: stats.totalAdmins, icon: '👥' },
-          { label: 'Total Students', value: safeLocale(stats.totalStudents), icon: '🧑‍🎓' },
-          { label: 'Exams Taken', value: safeLocale(stats.totalExams), icon: '📚' },
-          { label: 'Open Tickets', value: stats.openTickets, icon: '🎫' },
-          { label: 'Total Revenue', value: `₦${safeLocale(stats.totalRevenue)}`, icon: '💰' },
-        ].map((stat, index) => (
-          <motion.div
-            key={stat.label}
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: index * 0.05 }}
-            className={homeStatCard}
-          >
-            <div className={homeStatCardTop}>
-              <span className={homeStatCardIcon}>{stat.icon}</span>
-              <span className={homeStatCardValue}>{stat.value}</span>
-            </div>
-            <p className={homeStatCardLabel}>{stat.label}</p>
-          </motion.div>
-        ))}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.05 }}
+          className={homeStatCard}
+        >
+          <div className={homeStatCardTop}>
+            <span className={homeStatCardIcon}>🏫</span>
+            <span className={homeStatCardValue}>{stats.totalSchools}</span>
+          </div>
+          <p className={homeStatCardLabel}>Total Schools</p>
+        </motion.div>
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className={homeStatCard}
+        >
+          <div className={homeStatCardTop}>
+            <span className={homeStatCardIcon}>✅</span>
+            <span className={homeStatCardValue}>{stats.activeSchools}</span>
+          </div>
+          <p className={homeStatCardLabel}>Active Schools</p>
+        </motion.div>
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.15 }}
+          className={homeStatCard}
+        >
+          <div className={homeStatCardTop}>
+            <span className={homeStatCardIcon}>👥</span>
+            <span className={homeStatCardValue}>{stats.totalAdmins}</span>
+          </div>
+          <p className={homeStatCardLabel}>Total Admins</p>
+        </motion.div>
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className={homeStatCard}
+        >
+          <div className={homeStatCardTop}>
+            <span className={homeStatCardIcon}>🧑‍🎓</span>
+            <span className={homeStatCardValue}>{safeLocale(stats.totalStudents)}</span>
+          </div>
+          <p className={homeStatCardLabel}>Total Students</p>
+        </motion.div>
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.25 }}
+          className={homeStatCard}
+        >
+          <div className={homeStatCardTop}>
+            <span className={homeStatCardIcon}>📚</span>
+            <span className={homeStatCardValue}>{safeLocale(stats.totalExams)}</span>
+          </div>
+          <p className={homeStatCardLabel}>Exams Taken</p>
+        </motion.div>
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className={homeStatCard}
+        >
+          <div className={homeStatCardTop}>
+            <span className={homeStatCardIcon}>🎫</span>
+            <span className={homeStatCardValue}>{stats.openTickets}</span>
+          </div>
+          <p className={homeStatCardLabel}>Open Tickets</p>
+        </motion.div>
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.35 }}
+          className={homeStatCard}
+        >
+          <div className={homeStatCardTop}>
+            <span className={homeStatCardIcon}>💰</span>
+            <span className={homeStatCardValue}>₦{safeLocale(stats.totalRevenue || subscriptionStats.totalRevenue)}</span>
+          </div>
+          <p className={homeStatCardLabel}>Total Revenue</p>
+        </motion.div>
       </div>
 
       <div className={homeActionsGrid}>
@@ -179,7 +262,7 @@ export default function SuperAdminHome({ setActiveSection }) {
             <div className="p-4 bg-[#F5F3FF] rounded-lg">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Monthly</span>
-                <span className="text-[14px] leading-[100%] font-[600] text-[#7C3AED] font-playfair">₦15,000</span>
+                <span className="text-[14px] leading-[100%] font-[600] text-[#7C3AED] font-playfair">₦{(subscriptionStats.monthly || 15000).toLocaleString()}</span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div className="h-full bg-[#7C3AED] w-[100%]" />
@@ -188,7 +271,7 @@ export default function SuperAdminHome({ setActiveSection }) {
             <div className="p-4 bg-[#F5F3FF] rounded-lg">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Termly</span>
-                <span className="text-[14px] leading-[100%] font-[600] text-[#7C3AED] font-playfair">₦42,000</span>
+                <span className="text-[14px] leading-[100%] font-[600] text-[#7C3AED] font-playfair">₦{(subscriptionStats.termly || 42000).toLocaleString()}</span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div className="h-full bg-[#7C3AED] w-[100%]" />
@@ -197,7 +280,7 @@ export default function SuperAdminHome({ setActiveSection }) {
             <div className="p-4 bg-[#F5F3FF] rounded-lg">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Yearly</span>
-                <span className="text-[14px] leading-[100%] font-[600] text-[#7C3AED] font-playfair">₦120,000</span>
+                <span className="text-[14px] leading-[100%] font-[600] text-[#7C3AED] font-playfair">₦{(subscriptionStats.yearly || 120000).toLocaleString()}</span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div className="h-full bg-[#7C3AED] w-[100%]" />
@@ -207,7 +290,7 @@ export default function SuperAdminHome({ setActiveSection }) {
               <div className="flex justify-between items-center">
                 <span className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Total Revenue</span>
                 <span className="text-[20px] leading-[100%] font-[700] text-[#7C3AED] font-playfair">
-                  ₦{safeLocale(stats.totalRevenue)}
+                  ₦{safeLocale(stats.totalRevenue || subscriptionStats.totalRevenue)}
                 </span>
               </div>
             </div>

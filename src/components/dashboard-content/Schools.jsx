@@ -21,7 +21,7 @@ import {
   superAdminStatLabel
 } from '../../styles/styles';
 
-export default function Schools({ setActiveSection }) {
+export default function Schools() {
   const { fetchWithAuth } = useSuperAdminAuth();
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,10 +45,14 @@ export default function Schools({ setActiveSection }) {
     setLoading(true);
     try {
       const response = await fetchWithAuth('/super-admin/schools');
-      const data = await response.json();
-      setSchools(data.schools || []);
+      if (response.ok) {
+        const data = await response.json();
+        setSchools(data.schools || []);
+      } else {
+        toast.error('Failed to load schools');
+      }
     } catch (error) {
-      toast.error('Failed to load schools');
+      toast.error('Network error');
     } finally {
       setLoading(false);
     }
@@ -223,7 +227,7 @@ export default function Schools({ setActiveSection }) {
         <div className={superAdminStatCard}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-[32px]">🧑‍🎓</span>
-            <span className={superAdminStatValue}>{stats.totalStudents}</span>
+            <span className={superAdminStatValue}>{stats.totalStudents.toLocaleString()}</span>
           </div>
           <p className={superAdminStatLabel}>Total Students</p>
         </div>
@@ -299,7 +303,9 @@ export default function Schools({ setActiveSection }) {
                       <button
                         onClick={() => handleToggleStatus(school)}
                         className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] transition-colors ${
-                          school.status === 'active' ? 'bg-green-100 text-green-600 hover:bg-red-100 hover:text-red-600' : 'bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-600'
+                          school.status === 'active' 
+                            ? 'bg-green-100 text-green-600 hover:bg-yellow-100 hover:text-yellow-600' 
+                            : 'bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-600'
                         } font-playfair`}
                       >
                         {school.status === 'active' ? 'Active' : 'Suspended'}
