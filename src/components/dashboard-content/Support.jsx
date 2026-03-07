@@ -98,6 +98,9 @@ export default function Support({ onOpenChat }) {
     try {
       const response = await fetchWithAuth('/super-admin/tickets', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(formData)
       });
 
@@ -127,6 +130,9 @@ export default function Support({ onOpenChat }) {
     try {
       const response = await fetchWithAuth(`/super-admin/tickets/${selectedTicket.id}/respond`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ message: replyMessage })
       });
 
@@ -135,10 +141,9 @@ export default function Support({ onOpenChat }) {
       if (response.ok) {
         toast.success('Reply sent successfully', { id: toastId });
         setReplyMessage('');
-        const updatedTicket = await fetchTicketDetails(selectedTicket.id);
-        if (updatedTicket) {
-          setSelectedTicket(updatedTicket);
-          setTickets(tickets.map(t => t.id === updatedTicket.id ? updatedTicket : t));
+        if (data.ticket) {
+          setSelectedTicket(data.ticket);
+          setTickets(tickets.map(t => t.id === data.ticket.id ? data.ticket : t));
         }
       } else {
         toast.error(data.message || 'Failed to send reply', { id: toastId });
@@ -154,17 +159,25 @@ export default function Support({ onOpenChat }) {
     try {
       const response = await fetchWithAuth(`/super-admin/tickets/${ticket.id}/status`, {
         method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ status: newStatus })
       });
 
+      const data = await response.json();
+
       if (response.ok) {
         toast.success(`Ticket marked as ${newStatus}`, { id: toastId });
-        fetchData();
-        if (selectedTicket?.id === ticket.id) {
-          setSelectedTicket({ ...selectedTicket, status: newStatus });
+        if (data.ticket) {
+          setTickets(tickets.map(t => t.id === data.ticket.id ? data.ticket : t));
+          if (selectedTicket?.id === ticket.id) {
+            setSelectedTicket(data.ticket);
+          }
+        } else {
+          fetchData();
         }
       } else {
-        const data = await response.json();
         toast.error(data.message || 'Failed to update status', { id: toastId });
       }
     } catch (error) {
@@ -194,6 +207,7 @@ export default function Support({ onOpenChat }) {
     switch(status) {
       case 'open': return 'bg-yellow-100 text-yellow-600';
       case 'in_progress': return 'bg-blue-100 text-blue-600';
+      case 'resolved': return 'bg-green-100 text-green-600';
       case 'closed': return 'bg-gray-100 text-gray-600';
       default: return 'bg-gray-100 text-gray-600';
     }
@@ -211,7 +225,8 @@ export default function Support({ onOpenChat }) {
   const filteredTickets = tickets.filter(ticket => {
     const matchesStatus = filterStatus === 'all' || ticket.status === filterStatus;
     const matchesSearch = (ticket.subject || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (ticket.id || '').toLowerCase().includes(searchTerm.toLowerCase());
+                         (ticket.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (ticket.description || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
@@ -219,8 +234,9 @@ export default function Support({ onOpenChat }) {
     total: tickets.length,
     open: tickets.filter(t => t.status === 'open').length,
     inProgress: tickets.filter(t => t.status === 'in_progress').length,
+    resolved: tickets.filter(t => t.status === 'resolved').length,
     closed: tickets.filter(t => t.status === 'closed').length,
-    highPriority: tickets.filter(t => t.priority === 'high' && t.status !== 'closed').length
+    highPriority: tickets.filter(t => t.priority === 'high' && t.status !== 'closed' && t.status !== 'resolved').length
   };
 
   return (
@@ -266,7 +282,7 @@ export default function Support({ onOpenChat }) {
           <div className="flex-1 w-full lg:w-auto">
             <input
               type="text"
-              placeholder="Search tickets by ID, subject..."
+              placeholder="Search tickets by ID, subject, description..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
@@ -281,6 +297,7 @@ export default function Support({ onOpenChat }) {
               <option value="all">All Status</option>
               <option value="open">Open</option>
               <option value="in_progress">In Progress</option>
+              <option value="resolved">Resolved</option>
               <option value="closed">Closed</option>
             </select>
             <button
@@ -305,13 +322,13 @@ export default function Support({ onOpenChat }) {
               key={ticket.id}
               whileHover={{ y: -2 }}
               className={`bg-white rounded-xl border border-gray-200 p-6 cursor-pointer hover:shadow-md transition-all ${
-                ticket.status === 'closed' ? 'opacity-75' : ''
+                ticket.status === 'closed' || ticket.status === 'resolved' ? 'opacity-75' : ''
               }`}
               onClick={() => handleViewTicket(ticket)}
             >
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
                     <h3 className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] font-playfair">
                       {ticket.subject}
                     </h3>
@@ -345,6 +362,11 @@ export default function Support({ onOpenChat }) {
               </div>
             </motion.div>
           ))}
+          {filteredTickets.length === 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+              <p className="text-[14px] text-[#626060] font-playfair">No tickets found</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -476,7 +498,7 @@ export default function Support({ onOpenChat }) {
             >
               <div className="flex justify-between items-start mb-6">
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
                     <h3 className="text-[20px] leading-[120%] font-[700] text-[#1E1E1E] font-playfair">
                       {selectedTicket.subject}
                     </h3>
@@ -490,8 +512,9 @@ export default function Support({ onOpenChat }) {
                   <p className="text-[13px] leading-[100%] font-[400] text-[#626060] font-playfair mb-2">
                     Ticket #{selectedTicket.id}
                   </p>
-                  <div className="flex gap-4 text-[11px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">
+                  <div className="flex gap-4 text-[11px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair flex-wrap">
                     <span>School: {schools.find(s => s.id === selectedTicket.schoolId)?.name || 'Unknown'}</span>
+                    <span>Category: {selectedTicket.category}</span>
                     <span>Created: {formatDate(selectedTicket.createdAt)}</span>
                   </div>
                   <div className="mt-4 p-4 bg-gray-50 rounded-lg">
@@ -534,10 +557,13 @@ export default function Support({ onOpenChat }) {
                       </div>
                     </div>
                   ))}
+                  {(!selectedTicket.messages || selectedTicket.messages.length === 0) && (
+                    <p className="text-center text-[13px] text-[#626060] py-4">No messages yet</p>
+                  )}
                 </div>
               </div>
 
-              {selectedTicket.status !== 'closed' && (
+              {selectedTicket.status !== 'closed' && selectedTicket.status !== 'resolved' && (
                 <div className="border-t border-gray-200 pt-6">
                   <h4 className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] mb-4 font-playfair">Reply to Ticket</h4>
                   <textarea
@@ -548,12 +574,20 @@ export default function Support({ onOpenChat }) {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair mb-4"
                   />
                   <div className="flex justify-between items-center">
-                    <button
-                      onClick={() => handleUpdateStatus(selectedTicket, 'closed')}
-                      className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-[13px] leading-[100%] font-[600]"
-                    >
-                      Close Ticket
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleUpdateStatus(selectedTicket, 'resolved')}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-[13px] leading-[100%] font-[600]"
+                      >
+                        Mark Resolved
+                      </button>
+                      <button
+                        onClick={() => handleUpdateStatus(selectedTicket, 'closed')}
+                        className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-[13px] leading-[100%] font-[600]"
+                      >
+                        Close Ticket
+                      </button>
+                    </div>
                     <button
                       onClick={handleSendReply}
                       disabled={!replyMessage.trim()}
@@ -567,9 +601,9 @@ export default function Support({ onOpenChat }) {
                 </div>
               )}
 
-              {selectedTicket.status === 'closed' && (
+              {(selectedTicket.status === 'closed' || selectedTicket.status === 'resolved') && (
                 <div className="border-t border-gray-200 pt-6">
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-2">
                     <button
                       onClick={() => handleUpdateStatus(selectedTicket, 'open')}
                       className="px-4 py-2 bg-[#7C3AED] text-white rounded-lg hover:bg-[#6D28D9] transition-colors text-[13px] leading-[100%] font-[600]"

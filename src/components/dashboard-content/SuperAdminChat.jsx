@@ -31,11 +31,16 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef(null);
   const [view, setView] = useState('list');
+  const pollingInterval = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
       fetchTickets();
+      startPolling();
+    } else {
+      stopPolling();
     }
+    return () => stopPolling();
   }, [isOpen]);
 
   useEffect(() => {
@@ -55,6 +60,39 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [selectedTicket?.messages]);
+
+  const startPolling = () => {
+    if (pollingInterval.current) return;
+    pollingInterval.current = setInterval(() => {
+      if (selectedTicket) {
+        refreshTicketMessages(selectedTicket.id);
+      } else {
+        fetchTickets();
+      }
+    }, 5000);
+  };
+
+  const stopPolling = () => {
+    if (pollingInterval.current) {
+      clearInterval(pollingInterval.current);
+      pollingInterval.current = null;
+    }
+  };
+
+  const refreshTicketMessages = async (ticketId) => {
+    try {
+      const response = await fetchWithAuth(`/super-admin/tickets/${ticketId}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.ticket) {
+          setSelectedTicket(data.ticket);
+          setTickets(prev => prev.map(t => t.id === data.ticket.id ? data.ticket : t));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to refresh messages:', error);
+    }
+  };
 
   const fetchTickets = async () => {
     setLoading(true);
@@ -107,19 +145,24 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
     try {
       const response = await fetchWithAuth(`/super-admin/tickets/${selectedTicket.id}/respond`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ message: newMessage })
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setSelectedTicket(data.ticket);
+        if (data.ticket) {
+          setSelectedTicket(data.ticket);
+          setTickets(prev => prev.map(t => 
+            t.id === selectedTicket.id 
+              ? { ...t, messages: data.ticket.messages, status: data.ticket.status, updatedAt: data.ticket.updatedAt }
+              : t
+          ));
+        }
         setNewMessage('');
-        setTickets(prev => prev.map(t => 
-          t.id === selectedTicket.id 
-            ? { ...t, messages: data.ticket.messages, updatedAt: data.ticket.updatedAt }
-            : t
-        ));
       } else {
         toast.error(data.message || 'Failed to send message');
       }
@@ -149,12 +192,13 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
     switch(status) {
       case 'open': return 'bg-yellow-100 text-yellow-600';
       case 'in_progress': return 'bg-blue-100 text-blue-600';
+      case 'resolved': return 'bg-green-100 text-green-600';
       case 'closed': return 'bg-gray-100 text-gray-600';
       default: return 'bg-gray-100 text-gray-600';
     }
   };
 
-  const isTicketClosed = selectedTicket?.status === 'closed';
+  const isTicketClosed = selectedTicket?.status === 'closed' || selectedTicket?.status === 'resolved';
 
   if (!isOpen) return null;
 
@@ -206,7 +250,7 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <h4 className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair truncate max-w-[150px]">
                             {ticket.subject}
                           </h4>
@@ -221,7 +265,7 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
                           {ticket.description}
                         </p>
                         <p className="text-[10px] leading-[100%] font-[400] text-[#626060] font-playfair mt-2">
-                          {ticket.messages?.length || 0} messages
+                          {ticket.messages?.length || 0} messages • {ticket.priority} priority
                         </p>
                       </div>
                     </div>
@@ -262,6 +306,9 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
                     <div className={chatTime}>{formatTime(msg.timestamp)}</div>
                   </div>
                 ))}
+                {(!selectedTicket.messages || selectedTicket.messages.length === 0) && (
+                  <p className="text-center text-[12px] text-[#626060] py-4">No messages yet. Start the conversation!</p>
+                )}
                 <div ref={messagesEndRef} />
               </div>
 

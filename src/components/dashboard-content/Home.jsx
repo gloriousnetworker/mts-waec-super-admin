@@ -96,6 +96,7 @@ export default function SuperAdminHome({ setActiveSection }) {
     { title: 'Create Admin', icon: '👤', color: 'border-[#10B981] text-[#10B981] hover:bg-[#D1FAE5]', action: () => setActiveSection('admins') },
     { title: 'Generate Report', icon: '📊', color: 'border-[#8B5CF6] text-[#8B5CF6] hover:bg-[#EDE9FE]', action: () => setActiveSection('reports') },
     { title: 'View Analytics', icon: '📈', color: 'border-[#F59E0B] text-[#F59E0B] hover:bg-[#FEF3C7]', action: () => setActiveSection('analytics') },
+    { title: 'Create Subject', icon: '📚', color: 'border-[#EC4899] text-[#EC4899] hover:bg-[#FCE7F3]', action: () => setActiveSection('subjects') },
   ];
 
   const safeLocale = (val) => (Number(val) || 0).toLocaleString();
@@ -235,21 +236,21 @@ export default function SuperAdminHome({ setActiveSection }) {
                 </div>
               </div>
             </button>
+            <button onClick={() => setActiveSection('subjects')} className={homeSubjectButton}>
+              <div className={homeSubjectInner}>
+                <span className={homeSubjectIcon}>📚</span>
+                <div>
+                  <div className={homeSubjectName}>Subject Management</div>
+                  <div className={homeSubjectCount}>Create & manage subjects</div>
+                </div>
+              </div>
+            </button>
             <button onClick={() => setActiveSection('support')} className={homeSubjectButton}>
               <div className={homeSubjectInner}>
                 <span className={homeSubjectIcon}>🎫</span>
                 <div>
                   <div className={homeSubjectName}>Support Tickets</div>
                   <div className={homeSubjectCount}>{stats.openTickets} pending</div>
-                </div>
-              </div>
-            </button>
-            <button onClick={() => setActiveSection('analytics')} className={homeSubjectButton}>
-              <div className={homeSubjectInner}>
-                <span className={homeSubjectIcon}>📊</span>
-                <div>
-                  <div className={homeSubjectName}>Analytics</div>
-                  <div className={homeSubjectCount}>View insights</div>
                 </div>
               </div>
             </button>

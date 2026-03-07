@@ -47,11 +47,15 @@ export default function Students() {
       if (studentsRes.ok) {
         const studentsData = await studentsRes.json();
         setStudents(studentsData.students || []);
+      } else {
+        toast.error('Failed to load students');
       }
       
       if (schoolsRes.ok) {
         const schoolsData = await schoolsRes.json();
         setSchools(schoolsData.schools || []);
+      } else {
+        toast.error('Failed to load schools');
       }
     } catch (error) {
       toast.error('Failed to load data');
@@ -62,16 +66,20 @@ export default function Students() {
 
   const fetchStudentDetails = async (student) => {
     try {
-      const response = await fetchWithAuth(`/admin/students/${student.id}`);
+      const response = await fetchWithAuth(`/super-admin/students/${student.id}`);
       if (response.ok) {
         const data = await response.json();
-        setSelectedStudent({ ...student, ...data });
+        setSelectedStudent(data.student || data);
         setShowDetailsModal(true);
       } else {
-        toast.error('Failed to load student details');
+        const studentData = students.find(s => s.id === student.id);
+        setSelectedStudent(studentData);
+        setShowDetailsModal(true);
       }
     } catch (error) {
-      toast.error('Network error');
+      const studentData = students.find(s => s.id === student.id);
+      setSelectedStudent(studentData);
+      setShowDetailsModal(true);
     }
   };
 
@@ -316,6 +324,12 @@ export default function Students() {
                           {selectedStudent.firstName} {selectedStudent.lastName}
                         </p>
                       </div>
+                      {selectedStudent.middleName && (
+                        <div>
+                          <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Middle Name</p>
+                          <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair mt-1">{selectedStudent.middleName}</p>
+                        </div>
+                      )}
                       <div>
                         <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Email</p>
                         <p className="text-[13px] leading-[100%] font-[500] text-[#7C3AED] font-playfair mt-1">{selectedStudent.email}</p>
@@ -323,6 +337,10 @@ export default function Students() {
                       <div>
                         <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Phone</p>
                         <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair mt-1">{selectedStudent.phone || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Date of Birth</p>
+                        <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair mt-1">{selectedStudent.dateOfBirth || 'N/A'}</p>
                       </div>
                     </div>
                   </div>
@@ -347,14 +365,26 @@ export default function Students() {
                         <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair mt-1">{selectedStudent.loginId}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Subjects</p>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {selectedStudent.subjects?.map((subject, i) => (
-                            <span key={i} className="px-2 py-1 bg-blue-100 text-blue-600 rounded-full text-[9px] leading-[100%] font-[500]">
-                              {subject}
-                            </span>
-                          ))}
+                        <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Status</p>
+                        <span className={`inline-block px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] mt-1 ${getStatusColor(selectedStudent.status)} font-playfair`}>
+                          {selectedStudent.status}
+                        </span>
+                      </div>
+                      {selectedStudent.subjects && selectedStudent.subjects.length > 0 && (
+                        <div>
+                          <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Subjects</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {selectedStudent.subjects?.map((subject, i) => (
+                              <span key={i} className="px-2 py-1 bg-blue-100 text-blue-600 rounded-full text-[9px] leading-[100%] font-[500]">
+                                {subject}
+                              </span>
+                            ))}
+                          </div>
                         </div>
+                      )}
+                      <div>
+                        <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Exam Mode</p>
+                        <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair mt-1">{selectedStudent.examMode ? 'Enabled' : 'Disabled'}</p>
                       </div>
                     </div>
                   </div>

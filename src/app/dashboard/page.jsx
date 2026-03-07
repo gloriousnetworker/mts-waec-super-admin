@@ -15,6 +15,7 @@ import Support from '../../components/dashboard-content/Support';
 import Analytics from '../../components/dashboard-content/Analytics';
 import Settings from '../../components/dashboard-content/Settings';
 import Help from '../../components/dashboard-content/Help';
+import Subjects from '../../components/dashboard-content/Subjects';
 import SuperAdminChat from '../../components/dashboard-content/SuperAdminChat';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import toast from 'react-hot-toast';
@@ -80,6 +81,7 @@ function SuperAdminDashboardContent() {
       case 'analytics': return <Analytics setActiveSection={handleNavigation} />;
       case 'settings': return <Settings setActiveSection={handleNavigation} />;
       case 'help': return <Help setActiveSection={handleNavigation} />;
+      case 'subjects': return <Subjects setActiveSection={handleNavigation} />;
       default: return <SuperAdminHome setActiveSection={handleNavigation} />;
     }
   };
