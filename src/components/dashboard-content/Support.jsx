@@ -27,11 +27,10 @@ export default function Support({ onOpenChat }) {
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showTicketModal, setShowTicketModal] = useState(false);
-  const [selectedTicket, setSelectedTicket] = useState(null);
-  const [replyMessage, setReplyMessage] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterSchool, setFilterSchool] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
   const [formData, setFormData] = useState({
     subject: '',
     category: 'technical',
@@ -42,10 +41,11 @@ export default function Support({ onOpenChat }) {
 
   useEffect(() => {
     fetchData();
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchData = async () => {
-    setLoading(true);
     try {
       const [ticketsRes, schoolsRes] = await Promise.all([
         fetchWithAuth('/super-admin/tickets'),
@@ -55,6 +55,11 @@ export default function Support({ onOpenChat }) {
       if (ticketsRes.ok) {
         const ticketsData = await ticketsRes.json();
         setTickets(ticketsData.tickets || []);
+        
+        const unread = ticketsData.tickets?.filter(t => 
+          t.messages?.some(msg => msg.sender === 'admin' && !msg.read)
+        ).length || 0;
+        setUnreadCount(unread);
       }
       
       if (schoolsRes.ok) {
@@ -65,20 +70,6 @@ export default function Support({ onOpenChat }) {
       toast.error('Failed to load tickets');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchTicketDetails = async (ticketId) => {
-    try {
-      const response = await fetchWithAuth(`/super-admin/tickets/${ticketId}`);
-      if (response.ok) {
-        const data = await response.json();
-        return data.ticket;
-      }
-      return null;
-    } catch (error) {
-      toast.error('Failed to fetch ticket details');
-      return null;
     }
   };
 
@@ -122,77 +113,10 @@ export default function Support({ onOpenChat }) {
     }
   };
 
-  const handleSendReply = async () => {
-    if (!replyMessage.trim() || !selectedTicket) return;
-
-    const toastId = toast.loading('Sending reply...');
-
-    try {
-      const response = await fetchWithAuth(`/super-admin/tickets/${selectedTicket.id}/respond`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ message: replyMessage })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success('Reply sent successfully', { id: toastId });
-        setReplyMessage('');
-        if (data.ticket) {
-          setSelectedTicket(data.ticket);
-          setTickets(tickets.map(t => t.id === data.ticket.id ? data.ticket : t));
-        }
-      } else {
-        toast.error(data.message || 'Failed to send reply', { id: toastId });
-      }
-    } catch (error) {
-      toast.error('Network error', { id: toastId });
+  const handleViewTicket = (ticket) => {
+    if (onOpenChat) {
+      onOpenChat(ticket.id);
     }
-  };
-
-  const handleUpdateStatus = async (ticket, newStatus) => {
-    const toastId = toast.loading('Updating ticket status...');
-
-    try {
-      const response = await fetchWithAuth(`/super-admin/tickets/${ticket.id}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success(`Ticket marked as ${newStatus}`, { id: toastId });
-        if (data.ticket) {
-          setTickets(tickets.map(t => t.id === data.ticket.id ? data.ticket : t));
-          if (selectedTicket?.id === ticket.id) {
-            setSelectedTicket(data.ticket);
-          }
-        } else {
-          fetchData();
-        }
-      } else {
-        toast.error(data.message || 'Failed to update status', { id: toastId });
-      }
-    } catch (error) {
-      toast.error('Network error', { id: toastId });
-    }
-  };
-
-  const handleViewTicket = async (ticket) => {
-    setLoading(true);
-    const detailedTicket = await fetchTicketDetails(ticket.id);
-    if (detailedTicket) {
-      setSelectedTicket(detailedTicket);
-      setShowTicketModal(true);
-    }
-    setLoading(false);
   };
 
   const formatDate = (timestamp) => {
@@ -222,12 +146,19 @@ export default function Support({ onOpenChat }) {
     }
   };
 
+  const hasUnreadMessages = (ticket) => {
+    return ticket.messages?.some(msg => 
+      msg.sender === 'admin' && !msg.read
+    ) || false;
+  };
+
   const filteredTickets = tickets.filter(ticket => {
     const matchesStatus = filterStatus === 'all' || ticket.status === filterStatus;
+    const matchesSchool = filterSchool === 'all' || ticket.schoolId === filterSchool;
     const matchesSearch = (ticket.subject || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (ticket.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (ticket.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
+    return matchesStatus && matchesSchool && matchesSearch;
   });
 
   const stats = {
@@ -239,14 +170,28 @@ export default function Support({ onOpenChat }) {
     highPriority: tickets.filter(t => t.priority === 'high' && t.status !== 'closed' && t.status !== 'resolved').length
   };
 
+  const schoolStats = schools.map(school => ({
+    ...school,
+    total: tickets.filter(t => t.schoolId === school.id).length,
+    open: tickets.filter(t => t.schoolId === school.id && t.status === 'open').length,
+    unread: tickets.filter(t => t.schoolId === school.id && t.messages?.some(msg => msg.sender === 'admin' && !msg.read)).length
+  }));
+
   return (
     <div className={examsContainer}>
       <div className={examsHeader}>
-        <h1 className={examsTitle}>Support Tickets</h1>
+        <div className="flex items-center gap-3">
+          <h1 className={examsTitle}>Support Tickets</h1>
+          {unreadCount > 0 && (
+            <span className="px-2 py-1 bg-red-500 text-white rounded-full text-[10px] leading-[100%] font-[600]">
+              {unreadCount} new
+            </span>
+          )}
+        </div>
         <p className={examsSubtitle}>Manage and respond to school admin support requests</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <div className={superAdminStatCard}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-[32px]">🎫</span>
@@ -270,11 +215,48 @@ export default function Support({ onOpenChat }) {
         </div>
         <div className={superAdminStatCard}>
           <div className="flex items-center justify-between mb-2">
+            <span className="text-[32px]">✅</span>
+            <span className={superAdminStatValue}>{stats.resolved}</span>
+          </div>
+          <p className={superAdminStatLabel}>Resolved</p>
+        </div>
+        <div className={superAdminStatCard}>
+          <div className="flex items-center justify-between mb-2">
             <span className="text-[32px]">🔴</span>
             <span className={superAdminStatValue}>{stats.highPriority}</span>
           </div>
           <p className={superAdminStatLabel}>High Priority</p>
         </div>
+      </div>
+
+      {/* School Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
+        {schoolStats.map(school => (
+          <div
+            key={school.id}
+            onClick={() => setFilterSchool(school.id)}
+            className={`bg-white rounded-xl border p-4 cursor-pointer transition-all ${
+              filterSchool === school.id 
+                ? 'border-[#7C3AED] bg-[#F5F3FF]' 
+                : 'border-gray-200 hover:border-[#7C3AED]'
+            }`}
+          >
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="text-[14px] leading-[120%] font-[600] text-[#1E1E1E] font-playfair">
+                {school.name}
+              </h3>
+              {school.unread > 0 && (
+                <span className="px-1.5 py-0.5 bg-red-500 text-white rounded-full text-[8px] font-[600]">
+                  {school.unread} new
+                </span>
+              )}
+            </div>
+            <div className="flex gap-3 text-[11px] text-[#626060] font-playfair">
+              <span>Total: {school.total}</span>
+              <span>Open: {school.open}</span>
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
@@ -289,6 +271,16 @@ export default function Support({ onOpenChat }) {
             />
           </div>
           <div className="flex flex-wrap gap-3 w-full lg:w-auto">
+            <select
+              value={filterSchool}
+              onChange={(e) => setFilterSchool(e.target.value)}
+              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+            >
+              <option value="all">All Schools</option>
+              {schools.map(school => (
+                <option key={school.id} value={school.id}>{school.name}</option>
+              ))}
+            </select>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
@@ -317,51 +309,68 @@ export default function Support({ onOpenChat }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {filteredTickets.map((ticket) => (
-            <motion.div
-              key={ticket.id}
-              whileHover={{ y: -2 }}
-              className={`bg-white rounded-xl border border-gray-200 p-6 cursor-pointer hover:shadow-md transition-all ${
-                ticket.status === 'closed' || ticket.status === 'resolved' ? 'opacity-75' : ''
-              }`}
-              onClick={() => handleViewTicket(ticket)}
-            >
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2 flex-wrap">
-                    <h3 className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] font-playfair">
-                      {ticket.subject}
-                    </h3>
-                    <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getStatusColor(ticket.status)}`}>
-                      {ticket.status === 'in_progress' ? 'In Progress' : ticket.status}
-                    </span>
-                    <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getPriorityBadge(ticket.priority)}`}>
-                      {ticket.priority}
-                    </span>
+          {filteredTickets.map((ticket) => {
+            const hasUnread = hasUnreadMessages(ticket);
+            const school = schools.find(s => s.id === ticket.schoolId);
+            const lastMessage = ticket.messages?.[ticket.messages.length - 1];
+            
+            return (
+              <motion.div
+                key={ticket.id}
+                whileHover={{ y: -2 }}
+                className={`bg-white rounded-xl border ${hasUnread ? 'border-[#7C3AED] border-2' : 'border-gray-200'} p-6 cursor-pointer hover:shadow-md transition-all ${
+                  ticket.status === 'closed' || ticket.status === 'resolved' ? 'opacity-75' : ''
+                }`}
+                onClick={() => handleViewTicket(ticket)}
+              >
+                {hasUnread && (
+                  <div className="absolute right-6 top-6 w-3 h-3 bg-[#7C3AED] rounded-full animate-pulse"></div>
+                )}
+                
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      <h3 className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] font-playfair">
+                        {ticket.subject}
+                      </h3>
+                      <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getStatusColor(ticket.status)}`}>
+                        {ticket.status === 'in_progress' ? 'In Progress' : ticket.status}
+                      </span>
+                      <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getPriorityBadge(ticket.priority)}`}>
+                        {ticket.priority}
+                      </span>
+                    </div>
+                    <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair mb-1">
+                      Ticket #{ticket.id} • {school?.name || 'Unknown School'}
+                    </p>
+                    <p className="text-[13px] leading-[140%] font-[400] text-[#1E1E1E] font-playfair line-clamp-2">
+                      {ticket.description}
+                    </p>
                   </div>
-                  <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair mb-1">
-                    Ticket #{ticket.id}
-                  </p>
-                  <p className="text-[13px] leading-[140%] font-[400] text-[#1E1E1E] font-playfair line-clamp-2">
-                    {ticket.description}
-                  </p>
+                  <div className="text-right">
+                    <p className="text-[11px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">
+                      Created: {formatDate(ticket.createdAt)}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-[11px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">
-                    School: {schools.find(s => s.id === ticket.schoolId)?.name || 'Unknown'}
-                  </p>
-                  <p className="text-[11px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair mt-1">
-                    Created: {formatDate(ticket.createdAt)}
-                  </p>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-4 text-[11px] leading-[100%] font-[400] text-[#626060] font-playfair">
-                <span>📁 {ticket.category}</span>
-                <span>💬 {ticket.messages?.length || 0} messages</span>
-              </div>
-            </motion.div>
-          ))}
+                <div className="flex items-center gap-4 text-[11px] leading-[100%] font-[400] text-[#626060] font-playfair">
+                  <span>📁 {ticket.category}</span>
+                  <span>💬 {ticket.messages?.length || 0} messages</span>
+                  {lastMessage && (
+                    <span className="text-[#7C3AED]">
+                      Last: {formatDate(lastMessage.timestamp)}
+                    </span>
+                  )}
+                </div>
+                {hasUnread && (
+                  <div className="mt-3 text-[12px] text-[#7C3AED] font-[600]">
+                    New message - Click to respond →
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
           {filteredTickets.length === 0 && (
             <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
               <p className="text-[14px] text-[#626060] font-playfair">No tickets found</p>
@@ -473,146 +482,6 @@ export default function Support({ onOpenChat }) {
                   Create Ticket
                 </button>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-
-        {showTicketModal && selectedTicket && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className={modalOverlay}
-            onClick={() => {
-              setShowTicketModal(false);
-              setSelectedTicket(null);
-              setReplyMessage('');
-            }}
-          >
-            <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="bg-white rounded-xl p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex justify-between items-start mb-6">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2 flex-wrap">
-                    <h3 className="text-[20px] leading-[120%] font-[700] text-[#1E1E1E] font-playfair">
-                      {selectedTicket.subject}
-                    </h3>
-                    <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getStatusColor(selectedTicket.status)}`}>
-                      {selectedTicket.status === 'in_progress' ? 'In Progress' : selectedTicket.status}
-                    </span>
-                    <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getPriorityBadge(selectedTicket.priority)}`}>
-                      {selectedTicket.priority}
-                    </span>
-                  </div>
-                  <p className="text-[13px] leading-[100%] font-[400] text-[#626060] font-playfair mb-2">
-                    Ticket #{selectedTicket.id}
-                  </p>
-                  <div className="flex gap-4 text-[11px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair flex-wrap">
-                    <span>School: {schools.find(s => s.id === selectedTicket.schoolId)?.name || 'Unknown'}</span>
-                    <span>Category: {selectedTicket.category}</span>
-                    <span>Created: {formatDate(selectedTicket.createdAt)}</span>
-                  </div>
-                  <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                    <p className="text-[13px] leading-[140%] font-[400] text-[#1E1E1E] font-playfair">
-                      {selectedTicket.description}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowTicketModal(false);
-                    setSelectedTicket(null);
-                    setReplyMessage('');
-                  }}
-                  className="text-gray-400 hover:text-gray-600 text-xl"
-                >
-                  ×
-                </button>
-              </div>
-
-              <div className="border-t border-gray-200 pt-6 mb-6">
-                <h4 className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] mb-4 font-playfair">Conversation</h4>
-                <div className="space-y-4 max-h-96 overflow-y-auto p-2">
-                  {selectedTicket.messages?.map((msg, index) => (
-                    <div key={index} className={`flex ${msg.sender === 'super_admin' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%] p-4 rounded-lg ${
-                        msg.sender === 'super_admin' 
-                          ? 'bg-[#7C3AED] text-white' 
-                          : 'bg-gray-100 text-[#1E1E1E]'
-                      }`}>
-                        <p className="text-[10px] leading-[100%] font-[500] mb-1 opacity-70">
-                          {msg.sender === 'super_admin' ? 'You' : 'Admin'}
-                        </p>
-                        <p className="text-[13px] leading-[140%] font-[500] font-playfair">{msg.content}</p>
-                        <p className={`text-[9px] leading-[100%] font-[400] mt-2 ${
-                          msg.sender === 'super_admin' ? 'text-white/70' : 'text-[#626060]'
-                        } font-playfair`}>
-                          {msg.timestamp ? new Date(msg.timestamp).toLocaleString() : ''}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  {(!selectedTicket.messages || selectedTicket.messages.length === 0) && (
-                    <p className="text-center text-[13px] text-[#626060] py-4">No messages yet</p>
-                  )}
-                </div>
-              </div>
-
-              {selectedTicket.status !== 'closed' && selectedTicket.status !== 'resolved' && (
-                <div className="border-t border-gray-200 pt-6">
-                  <h4 className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] mb-4 font-playfair">Reply to Ticket</h4>
-                  <textarea
-                    value={replyMessage}
-                    onChange={(e) => setReplyMessage(e.target.value)}
-                    placeholder="Type your reply here..."
-                    rows="3"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair mb-4"
-                  />
-                  <div className="flex justify-between items-center">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleUpdateStatus(selectedTicket, 'resolved')}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-[13px] leading-[100%] font-[600]"
-                      >
-                        Mark Resolved
-                      </button>
-                      <button
-                        onClick={() => handleUpdateStatus(selectedTicket, 'closed')}
-                        className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-[13px] leading-[100%] font-[600]"
-                      >
-                        Close Ticket
-                      </button>
-                    </div>
-                    <button
-                      onClick={handleSendReply}
-                      disabled={!replyMessage.trim()}
-                      className={`px-6 py-3 bg-[#7C3AED] text-white rounded-lg hover:bg-[#6D28D9] transition-colors text-[13px] leading-[100%] font-[600] ${
-                        !replyMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      Send Reply
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {(selectedTicket.status === 'closed' || selectedTicket.status === 'resolved') && (
-                <div className="border-t border-gray-200 pt-6">
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={() => handleUpdateStatus(selectedTicket, 'open')}
-                      className="px-4 py-2 bg-[#7C3AED] text-white rounded-lg hover:bg-[#6D28D9] transition-colors text-[13px] leading-[100%] font-[600]"
-                    >
-                      Reopen Ticket
-                    </button>
-                  </div>
-                </div>
-              )}
             </motion.div>
           </motion.div>
         )}
