@@ -16,18 +16,18 @@ const toastOptions = {
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
     border: '1px solid #E8E8E8',
     maxWidth: '400px',
-    fontFamily: '"Playfair Display", serif',
+    fontFamily: 'Inter, sans-serif',
   },
   success: {
     style: {
-      background: '#F5F3FF',
-      color: '#7C3AED',
-      borderLeft: '4px solid #7C3AED',
-      border: '1px solid #DDD6FE',
+      background: '#EDF0F7',
+      color: '#1F2A49',
+      borderLeft: '4px solid #1F2A49',
+      border: '1px solid #CBD5E1',
     },
     iconTheme: {
-      primary: '#7C3AED',
-      secondary: '#F5F3FF',
+      primary: '#1F2A49',
+      secondary: '#EDF0F7',
     },
   },
   error: {
@@ -88,8 +88,8 @@ export default function SuperAdminLayout({ children }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-        <meta name="theme-color" content="#7C3AED" />
-        <meta name="description" content="Mega Tech Solutions - Super Admin Dashboard for Kogi State Ministry of Education" />
+        <meta name="theme-color" content="#1F2A49" />
+        <meta name="description" content="Einstein's CBT App — Super Admin Portal by Mega Tech Solutions" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/icons/icon-180x180.png" />
@@ -101,12 +101,12 @@ export default function SuperAdminLayout({ children }) {
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="application-name" content="Mega Tech Super Admin" />
-        <meta name="msapplication-TileColor" content="#7C3AED" />
+        <meta name="msapplication-TileColor" content="#1F2A49" />
         <meta name="msapplication-tap-highlight" content="no" />
         <title>Mega Tech Solutions - Super Admin</title>
         <script src="/sw-register.js" defer></script>
       </head>
-      <body className="bg-gray-50 min-h-screen font-playfair antialiased">
+      <body className="bg-surface-muted min-h-screen font-inter antialiased">
         <SuperAdminAuthProvider>
           <Toaster 
             position="top-center" 

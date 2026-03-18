@@ -91,14 +91,14 @@ export default function Reports() {
         <title>${reportTitle}</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 40px; }
-          h1 { color: #7C3AED; }
+          h1 { color: #1F2A49; }
           .header { margin-bottom: 30px; }
           .date { color: #666; font-size: 14px; }
           table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-          th { background-color: #7C3AED; color: white; padding: 12px; text-align: left; }
+          th { background-color: #1F2A49; color: white; padding: 12px; text-align: left; }
           td { padding: 10px; border-bottom: 1px solid #ddd; }
           tr:nth-child(even) { background-color: #f9f9f9; }
-          .summary { background-color: #F5F3FF; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+          .summary { background-color: #EDF0F7; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
         </style>
       </head>
       <body>
@@ -199,7 +199,11 @@ export default function Reports() {
     try {
       const requestBody = {
         type: reportType,
-        format: 'json'
+        format: 'json',
+        dateRange,
+        ...(reportType === 'school' && selectedSchool !== 'all' && { schoolId: selectedSchool }),
+        ...(startDate && { startDate }),
+        ...(endDate && { endDate }),
       };
 
       const response = await fetchWithAuth('/super-admin/reports/generate', {
@@ -264,12 +268,12 @@ export default function Reports() {
   };
 
   const reportTypes = [
-    { id: 'school', name: 'School Report', icon: '🏫', desc: 'Detailed information about schools with student and admin counts' },
-    { id: 'admin', name: 'Admin Report', icon: '👥', desc: 'Admin activity and metrics across schools' },
-    { id: 'student', name: 'Student Report', icon: '🧑‍🎓', desc: 'Student performance and enrollment data' },
+    { id: 'school',      name: 'School Report',        icon: '🏫', desc: 'Detailed information about schools with student and admin counts' },
+    { id: 'admin',       name: 'Admin Report',          icon: '👥', desc: 'Admin activity and metrics across schools' },
+    { id: 'student',     name: 'Student Report',        icon: '🎓', desc: 'Student performance and enrollment data' },
     { id: 'performance', name: 'Performance Analytics', icon: '📊', desc: 'Academic performance metrics and analysis' },
-    { id: 'revenue', name: 'Revenue Report', icon: '💰', desc: 'Subscription and payment analytics' },
-    { id: 'ministry', name: 'Ministry Report', icon: '🏛️', desc: 'State-wide education statistics for ministry submission' }
+    { id: 'revenue',     name: 'Revenue Report',        icon: '💰', desc: 'Subscription and payment analytics' },
+    { id: 'subject',     name: 'Subject Report',        icon: '📚', desc: 'Subject-level performance breakdown across the platform' },
   ];
 
   const dateRanges = [
@@ -284,7 +288,7 @@ export default function Reports() {
     <div className={examsContainer}>
       <div className={examsHeader}>
         <h1 className={examsTitle}>Report Generation</h1>
-        <p className={examsSubtitle}>Generate comprehensive reports for analysis and ministry submissions</p>
+        <p className={examsSubtitle}>Generate comprehensive reports for analysis and download</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -294,13 +298,13 @@ export default function Reports() {
             onClick={() => setReportType(type.id)}
             className={`p-6 rounded-xl border-2 transition-all text-left ${
               reportType === type.id
-                ? 'border-[#7C3AED] bg-[#F5F3FF]'
-                : 'border-gray-200 bg-white hover:border-[#7C3AED]'
+                ? 'border-brand-primary bg-brand-primary-lt'
+                : 'border-gray-200 bg-white hover:border-brand-primary'
             }`}
           >
             <div className="text-[24px] mb-3">{type.icon}</div>
-            <h3 className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] mb-2 font-playfair">{type.name}</h3>
-            <p className="text-[12px] leading-[140%] font-[400] text-[#626060] font-playfair">{type.desc}</p>
+            <h3 className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] mb-2">{type.name}</h3>
+            <p className="text-[12px] leading-[140%] font-[400] text-[#626060]">{type.desc}</p>
           </button>
         ))}
       </div>
@@ -312,27 +316,27 @@ export default function Reports() {
             onClick={() => setReportType(type.id)}
             className={`p-6 rounded-xl border-2 transition-all text-left ${
               reportType === type.id
-                ? 'border-[#7C3AED] bg-[#F5F3FF]'
-                : 'border-gray-200 bg-white hover:border-[#7C3AED]'
+                ? 'border-brand-primary bg-brand-primary-lt'
+                : 'border-gray-200 bg-white hover:border-brand-primary'
             }`}
           >
             <div className="text-[24px] mb-3">{type.icon}</div>
-            <h3 className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] mb-2 font-playfair">{type.name}</h3>
-            <p className="text-[12px] leading-[140%] font-[400] text-[#626060] font-playfair">{type.desc}</p>
+            <h3 className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] mb-2">{type.name}</h3>
+            <p className="text-[12px] leading-[140%] font-[400] text-[#626060]">{type.desc}</p>
           </button>
         ))}
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-8 mb-8">
-        <h2 className="text-[18px] leading-[120%] font-[600] text-[#1E1E1E] mb-6 font-playfair">Report Configuration</h2>
+        <h2 className="text-[18px] leading-[120%] font-[600] text-[#1E1E1E] mb-6">Report Configuration</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <div>
-            <label className="block text-[13px] leading-[100%] font-[500] text-[#1E1E1E] mb-2 font-playfair">Date Range</label>
+            <label className="block text-[13px] leading-[100%] font-[500] text-[#1E1E1E] mb-2">Date Range</label>
             <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-brand-primary text-[13px]"
             >
               {dateRanges.map(range => (
                 <option key={range.id} value={range.id}>{range.name}</option>
@@ -342,11 +346,11 @@ export default function Reports() {
 
           {reportType === 'school' && (
             <div>
-              <label className="block text-[13px] leading-[100%] font-[500] text-[#1E1E1E] mb-2 font-playfair">Select School</label>
+              <label className="block text-[13px] leading-[100%] font-[500] text-[#1E1E1E] mb-2">Select School</label>
               <select
                 value={selectedSchool}
                 onChange={(e) => setSelectedSchool(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-brand-primary text-[13px]"
               >
                 <option value="all">All Schools</option>
                 {schools.map(school => (
@@ -357,11 +361,11 @@ export default function Reports() {
           )}
 
           <div>
-            <label className="block text-[13px] leading-[100%] font-[500] text-[#1E1E1E] mb-2 font-playfair">Export Format</label>
+            <label className="block text-[13px] leading-[100%] font-[500] text-[#1E1E1E] mb-2">Export Format</label>
             <select
               value={format}
               onChange={(e) => setFormat(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-brand-primary text-[13px]"
             >
               <option value="json">JSON (Raw Data)</option>
               <option value="csv">CSV (Excel Compatible)</option>
@@ -371,9 +375,9 @@ export default function Reports() {
           </div>
         </div>
 
-        <div className="bg-[#F5F3FF] rounded-lg p-4 mb-6">
-          <h3 className="text-[14px] leading-[100%] font-[600] text-[#7C3AED] mb-3 font-playfair">Report Summary</h3>
-          <div className="text-[12px] leading-[140%] font-[400] text-[#626060] font-playfair">
+        <div className="bg-brand-primary-lt rounded-lg p-4 mb-6">
+          <h3 className="text-[14px] leading-[100%] font-[600] text-brand-primary mb-3">Report Summary</h3>
+          <div className="text-[12px] leading-[140%] font-[400] text-[#626060]">
             <p>• Report Type: {reportTypes.find(t => t.id === reportType)?.name || reportType}</p>
             <p>• Date Range: {dateRanges.find(r => r.id === dateRange)?.name || dateRange}</p>
             {reportType === 'school' && selectedSchool !== 'all' && <p>• School: {schools.find(s => s.id === selectedSchool)?.name}</p>}
@@ -389,14 +393,14 @@ export default function Reports() {
               setSelectedSchool('all');
               setFormat('json');
             }}
-            className="px-6 py-3 bg-white text-[#7C3AED] border border-[#7C3AED] rounded-lg hover:bg-[#F5F3FF] transition-colors font-playfair text-[14px] leading-[100%] font-[600]"
+            className="px-6 py-3 bg-white text-brand-primary border border-brand-primary rounded-lg hover:bg-brand-primary-lt transition-colors text-[14px] leading-[100%] font-[600]"
           >
             Reset Filters
           </button>
           <button
             onClick={handleGenerateReport}
             disabled={generating}
-            className={`px-8 py-3 bg-[#7C3AED] text-white rounded-lg hover:bg-[#6D28D9] transition-colors font-playfair text-[14px] leading-[100%] font-[600] ${
+            className={`px-8 py-3 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dk transition-colors text-[14px] leading-[100%] font-[600] ${
               generating ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
@@ -415,8 +419,8 @@ export default function Reports() {
                   <div className="flex items-center gap-3">
                     <span className="text-[20px]">📄</span>
                     <div>
-                      <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">{report.name}</p>
-                      <p className="text-[10px] leading-[100%] font-[400] text-[#626060] mt-1 font-playfair">{report.date} • {report.format.toUpperCase()}</p>
+                      <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E]">{report.name}</p>
+                      <p className="text-[10px] leading-[100%] font-[400] text-[#626060] mt-1">{report.date} • {report.format.toUpperCase()}</p>
                     </div>
                   </div>
                 </div>
@@ -432,24 +436,24 @@ export default function Reports() {
           <div className="space-y-3">
             <button 
               onClick={() => setReportType('performance')}
-              className="w-full p-4 bg-[#F5F3FF] rounded-lg text-left hover:bg-[#EDE9FE] transition-colors"
+              className="w-full p-4 bg-brand-primary-lt rounded-lg text-left hover:bg-brand-primary-lt transition-colors"
             >
-              <p className="text-[14px] leading-[100%] font-[600] text-[#7C3AED] mb-2 font-playfair">📊 Performance Analytics</p>
-              <p className="text-[11px] leading-[140%] font-[400] text-[#626060] font-playfair">View detailed performance metrics across all schools</p>
+              <p className="text-[14px] leading-[100%] font-[600] text-brand-primary mb-2">📊 Performance Analytics</p>
+              <p className="text-[11px] leading-[140%] font-[400] text-[#626060]">View detailed performance metrics across all schools</p>
             </button>
             <button 
               onClick={() => setReportType('revenue')}
-              className="w-full p-4 bg-[#F5F3FF] rounded-lg text-left hover:bg-[#EDE9FE] transition-colors"
+              className="w-full p-4 bg-brand-primary-lt rounded-lg text-left hover:bg-brand-primary-lt transition-colors"
             >
-              <p className="text-[14px] leading-[100%] font-[600] text-[#7C3AED] mb-2 font-playfair">💰 Revenue Summary</p>
-              <p className="text-[11px] leading-[140%] font-[400] text-[#626060] font-playfair">Check subscription revenue and payment analytics</p>
+              <p className="text-[14px] leading-[100%] font-[600] text-brand-primary mb-2">💰 Revenue Summary</p>
+              <p className="text-[11px] leading-[140%] font-[400] text-[#626060]">Check subscription revenue and payment analytics</p>
             </button>
             <button 
               onClick={() => setReportType('student')}
-              className="w-full p-4 bg-[#F5F3FF] rounded-lg text-left hover:bg-[#EDE9FE] transition-colors"
+              className="w-full p-4 bg-brand-primary-lt rounded-lg text-left hover:bg-brand-primary-lt transition-colors"
             >
-              <p className="text-[14px] leading-[100%] font-[600] text-[#7C3AED] mb-2 font-playfair">📚 Student Enrollment</p>
-              <p className="text-[11px] leading-[140%] font-[400] text-[#626060] font-playfair">Track student enrollment trends across the state</p>
+              <p className="text-[14px] leading-[100%] font-[600] text-brand-primary mb-2">📚 Student Enrollment</p>
+              <p className="text-[11px] leading-[140%] font-[400] text-[#626060]">Track student enrollment trends across the platform</p>
             </button>
           </div>
         </div>

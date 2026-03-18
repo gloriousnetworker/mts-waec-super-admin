@@ -11,7 +11,7 @@ import {
   homeCardTitle
 } from '../../styles/styles';
 
-export default function Help() {
+export default function Help({ setActiveSection }) {
   const [activeFaq, setActiveFaq] = useState(null);
 
   const faqs = [
@@ -82,15 +82,15 @@ export default function Help() {
             <h2 className={homeCardTitle}>Frequently Asked Questions</h2>
             <div className="space-y-4">
               {faqs.map((faq) => (
-                <div key={faq.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                <div key={faq.id} className="border border-border rounded-xl overflow-hidden">
                   <button
                     onClick={() => setActiveFaq(activeFaq === faq.id ? null : faq.id)}
-                    className="w-full px-4 py-3 text-left flex justify-between items-center hover:bg-gray-50 transition-colors"
+                    className="w-full px-4 py-3 text-left flex justify-between items-center hover:bg-surface-subtle transition-colors min-h-[44px]"
                   >
-                    <span className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">
+                    <span className="text-sm font-semibold text-content-primary pr-3">
                       {faq.question}
                     </span>
-                    <span className="text-[#7C3AED] text-[18px]">
+                    <span className="text-brand-primary text-lg flex-shrink-0">
                       {activeFaq === faq.id ? '−' : '+'}
                     </span>
                   </button>
@@ -99,9 +99,9 @@ export default function Help() {
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      className="px-4 py-3 bg-gray-50 border-t border-gray-200"
+                      className="px-4 py-3 bg-surface-muted border-t border-border"
                     >
-                      <p className="text-[13px] leading-[140%] font-[400] text-[#626060] font-playfair">
+                      <p className="text-sm text-content-secondary leading-relaxed">
                         {faq.answer}
                       </p>
                     </motion.div>
@@ -117,32 +117,34 @@ export default function Help() {
             <h2 className={homeCardTitle}>Quick Guides</h2>
             <div className="space-y-4">
               {guides.map((guide, index) => (
-                <a
+                <div
                   key={index}
-                  href={guide.link}
-                  className="block p-4 bg-[#F5F3FF] rounded-lg hover:bg-[#EDE9FE] transition-colors"
+                  className="p-4 bg-brand-primary-lt rounded-xl border border-brand-primary/10"
                 >
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-[24px]">{guide.icon}</span>
-                    <h3 className="text-[14px] leading-[100%] font-[600] text-[#7C3AED] font-playfair">
+                  <div className="flex items-center gap-3 mb-1">
+                    <span className="text-xl">{guide.icon}</span>
+                    <h3 className="text-sm font-semibold text-brand-primary">
                       {guide.title}
                     </h3>
                   </div>
-                  <p className="text-[12px] leading-[140%] font-[400] text-[#626060] font-playfair">
+                  <p className="text-xs text-content-secondary leading-relaxed">
                     {guide.description}
                   </p>
-                </a>
+                </div>
               ))}
             </div>
           </div>
 
-          <div className="mt-6 bg-gradient-to-br from-[#7C3AED] to-[#6D28D9] rounded-xl p-6 text-white">
-            <h3 className="text-[18px] leading-[120%] font-[700] mb-3 font-playfair">Need Personal Help?</h3>
-            <p className="text-[13px] leading-[140%] font-[400] mb-4 text-white/90 font-playfair">
+          <div className="mt-6 bg-gradient-to-br from-brand-primary to-brand-primary-dk rounded-xl p-6 text-white">
+            <h3 className="text-lg font-bold mb-2 font-playfair">Need Personal Help?</h3>
+            <p className="text-sm text-white/80 mb-4">
               Our support team is ready to assist you with any issues or questions.
             </p>
-            <button className="w-full px-4 py-3 bg-white text-[#7C3AED] rounded-lg hover:bg-gray-100 transition-colors font-playfair text-[14px] leading-[100%] font-[600]">
-              Contact Support
+            <button
+              onClick={() => setActiveSection('support')}
+              className="w-full px-4 py-3 bg-white text-brand-primary rounded-lg hover:bg-white/90 transition-colors text-sm font-semibold min-h-[44px]"
+            >
+              Go to Support Tickets
             </button>
           </div>
         </div>

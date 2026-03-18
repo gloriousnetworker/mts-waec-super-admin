@@ -7,20 +7,20 @@ import toast from 'react-hot-toast';
 
 const chatContainer = "fixed bottom-6 right-6 z-[100]";
 const chatWindow = "absolute bottom-20 right-0 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden";
-const chatHeader = "bg-[#7C3AED] text-white p-4 flex justify-between items-center";
-const chatHeaderTitle = "text-[16px] leading-[100%] font-[600] font-playfair";
+const chatHeader = "bg-brand-primary text-white p-4 flex justify-between items-center";
+const chatHeaderTitle = "text-[16px] leading-[100%] font-[600]";
 const chatHeaderClose = "text-white hover:text-gray-200 cursor-pointer text-xl";
 const chatMessages = "h-96 overflow-y-auto p-4 space-y-4";
 const chatMessage = "flex flex-col";
 const chatMessageSent = "items-end";
 const chatMessageReceived = "items-start";
-const chatBubble = "max-w-[80%] p-3 rounded-lg text-[13px] leading-[140%] font-[500] font-playfair";
-const chatBubbleSent = "bg-[#7C3AED] text-white rounded-br-none";
+const chatBubble = "max-w-[80%] p-3 rounded-lg text-[13px] leading-[140%] font-[500]";
+const chatBubbleSent = "bg-brand-primary text-white rounded-br-none";
 const chatBubbleReceived = "bg-gray-100 text-[#1E1E1E] rounded-bl-none";
-const chatTime = "text-[9px] leading-[100%] font-[400] text-[#9CA3AF] mt-1 font-playfair";
+const chatTime = "text-[9px] leading-[100%] font-[400] text-[#9CA3AF] mt-1";
 const chatInput = "border-t border-gray-200 p-4 flex gap-2";
-const chatInputField = "flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair";
-const chatSendButton = "px-4 py-2 bg-[#7C3AED] text-white rounded-md hover:bg-[#6D28D9] transition-colors font-playfair text-[13px] leading-[100%] font-[600]";
+const chatInputField = "flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-brand-primary text-[13px]";
+const chatSendButton = "px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk transition-colors text-[13px] leading-[100%] font-[600]";
 const notificationBadge = "absolute -top-2 -right-2 bg-red-500 text-white text-[10px] min-w-[20px] h-5 rounded-full flex items-center justify-center px-1 font-[600] animate-pulse";
 
 export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null }) {
@@ -113,31 +113,24 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
         initial={{ opacity: 0, y: 50, scale: 0.3 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
-        className="bg-white rounded-lg shadow-lg border-l-4 border-[#7C3AED] p-4 max-w-sm cursor-pointer"
+        className="bg-white rounded-lg shadow-lg border-l-4 border-brand-primary p-4 max-w-sm cursor-pointer"
         onClick={() => {
           toast.dismiss(t.id);
-          if (!isOpen) {
-            onClose();
-            setTimeout(() => {
-              window.dispatchEvent(new CustomEvent('openChatWithTicket', { detail: ticket }));
-            }, 100);
-          } else {
-            loadTicketConversation(ticket.id);
-          }
+          loadTicketConversation(ticket.id);
         }}
       >
         <div className="flex items-start gap-3">
-          <div className="bg-[#7C3AED] rounded-full p-2 flex-shrink-0">
+          <div className="bg-brand-primary rounded-full p-2 flex-shrink-0">
             <span className="text-white text-sm">💬</span>
           </div>
           <div className="flex-1">
-            <p className="text-[13px] font-[600] text-[#1E1E1E] font-playfair mb-1">
+            <p className="text-[13px] font-[600] text-[#1E1E1E] mb-1">
               New message from {school?.name || 'School'}
             </p>
-            <p className="text-[12px] text-[#626060] font-playfair line-clamp-2">
+            <p className="text-[12px] text-[#626060] line-clamp-2">
               {message.content}
             </p>
-            <p className="text-[10px] text-[#7C3AED] mt-2 font-playfair">
+            <p className="text-[10px] text-brand-primary mt-2">
               Ticket: {ticket.subject}
             </p>
           </div>
@@ -151,15 +144,15 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
 
   const refreshTicketMessages = async (ticketId) => {
     try {
-      const response = await fetchWithAuth('/super-admin/tickets');
+      const response = await fetchWithAuth(`/super-admin/tickets/${ticketId}`);
       if (response.ok) {
         const data = await response.json();
-        const updatedTicket = data.tickets?.find(t => t.id === ticketId);
-        
+        const updatedTicket = data.ticket || data;
+
         if (updatedTicket && selectedTicket) {
           const oldMessages = selectedTicket.messages?.length || 0;
           const newMessages = updatedTicket.messages?.length || 0;
-          
+
           if (newMessages > oldMessages) {
             const lastMessage = updatedTicket.messages[updatedTicket.messages.length - 1];
             if (lastMessage.sender === 'admin') {
@@ -167,11 +160,11 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
               showNotification(updatedTicket, lastMessage);
             }
           }
-          
+
           setSelectedTicket(updatedTicket);
+          // Reflect updated ticket in list
+          setTickets(prev => prev.map(t => t.id === ticketId ? updatedTicket : t));
         }
-        
-        processTickets(data.tickets || []);
       }
     } catch (error) {
       console.error('Failed to refresh messages:', error);
@@ -203,10 +196,10 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
   const loadTicketConversation = async (ticketId) => {
     setLoading(true);
     try {
-      const response = await fetchWithAuth('/super-admin/tickets');
+      const response = await fetchWithAuth(`/super-admin/tickets/${ticketId}`);
       if (response.ok) {
         const data = await response.json();
-        const ticket = data.tickets?.find(t => t.id === ticketId);
+        const ticket = data.ticket || data;
         if (ticket) {
           setSelectedTicket(ticket);
           setView('chat');
@@ -226,7 +219,8 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
       const response = await fetchWithAuth('/super-admin/tickets');
       if (response.ok) {
         const data = await response.json();
-        processTickets(data.tickets || []);
+        // Handle both paginated shape (data.data) and legacy shape (data.tickets)
+        processTickets(data.data || data.tickets || []);
       }
     } catch (error) {
       console.error('Failed to fetch tickets:', error);
@@ -329,7 +323,7 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
         animate={{ scale: 1 }}
         whileHover={{ scale: 1.1 }}
         onClick={onClose}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-[#7C3AED] rounded-full shadow-lg flex items-center justify-center cursor-pointer hover:bg-[#6D28D9] transition-colors z-[100]"
+        className="fixed bottom-6 right-6 w-14 h-14 bg-brand-primary rounded-full shadow-lg flex items-center justify-center cursor-pointer hover:bg-brand-primary-dk transition-colors z-[100]"
       >
         <span className="text-white text-2xl">💬</span>
         {unreadCount > 0 && (
@@ -375,12 +369,12 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
                     : 'Support Tickets'}
                 </h3>
                 {view === 'chat' && selectedTicket && (
-                  <p className="text-[10px] leading-[100%] font-[400] text-white/70 mt-1 font-playfair">
+                  <p className="text-[10px] leading-[100%] font-[400] text-white/70 mt-1">
                     {getSchoolName(selectedTicket.schoolId)} • #{selectedTicket.id}
                   </p>
                 )}
                 {view === 'list' && (
-                  <p className="text-[10px] leading-[100%] font-[400] text-white/70 mt-1 font-playfair">
+                  <p className="text-[10px] leading-[100%] font-[400] text-white/70 mt-1">
                     {filteredTickets.length} ticket{filteredTickets.length !== 1 ? 's' : ''}
                   </p>
                 )}
@@ -394,7 +388,7 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
               <select
                 value={selectedSchool}
                 onChange={(e) => setSelectedSchool(e.target.value)}
-                className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[12px] font-playfair"
+                className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:border-brand-primary text-[12px]"
               >
                 <option value="all">All Schools {unreadCount > 0 && `(${unreadCount} unread)`}</option>
                 {schools.map(school => {
@@ -411,13 +405,13 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
 
           {loading && view === 'list' ? (
             <div className="h-96 flex items-center justify-center">
-              <div className="w-8 h-8 border-4 border-[#7C3AED] border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-8 h-8 spinner"></div>
             </div>
           ) : view === 'list' ? (
             <div className="h-96 overflow-y-auto">
               {filteredTickets.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-[13px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">No tickets found</p>
+                  <p className="text-[13px] leading-[100%] font-[400] text-[#9CA3AF]">No tickets found</p>
                 </div>
               ) : (
                 filteredTickets.map((ticket) => {
@@ -435,36 +429,36 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
                       className={`p-4 border-b border-gray-100 cursor-pointer relative ${hasUnread ? 'bg-[#F5F3FF]' : ''}`}
                     >
                       {hasUnread && (
-                        <div className="absolute right-4 top-4 w-2 h-2 bg-[#7C3AED] rounded-full"></div>
+                        <div className="absolute right-4 top-4 w-2 h-2 bg-brand-primary rounded-full"></div>
                       )}
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <h4 className={`text-[14px] leading-[100%] font-[600] ${hasUnread ? 'text-[#7C3AED]' : 'text-[#1E1E1E]'} font-playfair truncate max-w-[150px]`}>
+                            <h4 className={`text-[14px] leading-[100%] font-[600] ${hasUnread ? 'text-brand-primary' : 'text-[#1E1E1E]'} truncate max-w-[150px]`}>
                               {ticket.subject}
                             </h4>
                             <span className={`px-1.5 py-0.5 rounded-full text-[8px] leading-[100%] font-[500] ${getStatusColor(ticket.status)}`}>
                               {ticket.status === 'in_progress' ? 'In Progress' : ticket.status}
                             </span>
                           </div>
-                          <p className="text-[11px] leading-[100%] font-[400] text-[#626060] font-playfair mb-1">
+                          <p className="text-[11px] leading-[100%] font-[400] text-[#626060] mb-1">
                             {school?.name || 'Unknown'} • Ticket #{ticket.id}
                           </p>
-                          <p className="text-[12px] leading-[140%] font-[500] text-[#1E1E1E] font-playfair line-clamp-2">
+                          <p className="text-[12px] leading-[140%] font-[500] text-[#1E1E1E] line-clamp-2">
                             {ticket.description}
                           </p>
                           <div className="flex justify-between items-center mt-2">
-                            <p className="text-[10px] leading-[100%] font-[400] text-[#626060] font-playfair">
+                            <p className="text-[10px] leading-[100%] font-[400] text-[#626060]">
                               {ticket.messages?.length || 0} messages • {ticket.priority} priority
                             </p>
                             {lastMessage && (
-                              <p className="text-[8px] text-[#9CA3AF] font-playfair">
+                              <p className="text-[8px] text-[#9CA3AF]">
                                 {formatDateTime(lastMessage.timestamp)}
                               </p>
                             )}
                           </div>
                           {hasUnread && (
-                            <p className="text-[10px] text-[#7C3AED] font-[500] mt-1">
+                            <p className="text-[10px] text-brand-primary font-[500] mt-1">
                               Click to respond →
                             </p>
                           )}
@@ -482,10 +476,10 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
               }`}>
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair mb-1">
+                    <p className="text-[12px] leading-[100%] font-[600] text-[#1E1E1E] mb-1">
                       {selectedTicket.subject}
                     </p>
-                    <p className="text-[10px] leading-[100%] font-[400] text-[#626060] font-playfair">
+                    <p className="text-[10px] leading-[100%] font-[400] text-[#626060]">
                       {getSchoolName(selectedTicket.schoolId)} • {selectedTicket.category} • {selectedTicket.priority} priority
                     </p>
                   </div>
@@ -525,7 +519,7 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
                     type="text"
                     value="This ticket is closed"
                     disabled
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-400 text-[13px] font-playfair cursor-not-allowed"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-400 text-[13px] cursor-not-allowed"
                   />
                 ) : (
                   <>

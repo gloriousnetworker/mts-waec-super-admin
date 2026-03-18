@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSuperAdminAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+import { School, CheckCircle, GraduationCap, Pencil, Trash2, Search, Plus } from 'lucide-react';
 import {
   examsContainer,
   examsHeader,
@@ -21,10 +22,14 @@ import {
   superAdminStatLabel
 } from '../../styles/styles';
 
+const PAGE_SIZE = 50;
+
 export default function Schools() {
   const { fetchWithAuth } = useSuperAdminAuth();
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -39,15 +44,17 @@ export default function Schools() {
 
   useEffect(() => {
     fetchSchools();
-  }, []);
+  }, [page]);
 
   const fetchSchools = async () => {
     setLoading(true);
     try {
-      const response = await fetchWithAuth('/super-admin/schools');
+      const response = await fetchWithAuth(`/super-admin/schools?limit=${PAGE_SIZE}&page=${page}`);
       if (response.ok) {
         const data = await response.json();
-        setSchools(data.schools || []);
+        const list = data.data || data.schools || [];
+        setSchools(list);
+        setTotalCount(data.total || list.length);
       } else {
         toast.error('Failed to load schools');
       }
@@ -196,8 +203,10 @@ export default function Schools() {
            (school.address || '').toLowerCase().includes(q);
   });
 
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
   const stats = {
-    total: schools.length,
+    total: totalCount,
     active: schools.filter(s => s.status === 'active').length,
     totalStudents: schools.reduce((sum, s) => sum + (s.studentCount || 0), 0)
   };
@@ -206,129 +215,109 @@ export default function Schools() {
     <div className={examsContainer}>
       <div className={examsHeader}>
         <h1 className={examsTitle}>Schools Management</h1>
-        <p className={examsSubtitle}>Manage all schools across Kogi State</p>
+        <p className={examsSubtitle}>Manage all registered schools on the platform</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        <div className={superAdminStatCard}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[32px]">🏫</span>
-            <span className={superAdminStatValue}>{stats.total}</span>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        {[
+          { Icon: School,       label: 'Total Schools',  value: stats.total },
+          { Icon: CheckCircle,  label: 'Active Schools', value: stats.active },
+          { Icon: GraduationCap,label: 'Total Students', value: stats.totalStudents.toLocaleString() },
+        ].map(({ Icon, label, value }) => (
+          <div key={label} className={superAdminStatCard}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="w-10 h-10 rounded-lg bg-brand-primary-lt flex items-center justify-center text-brand-primary">
+                <Icon size={20} strokeWidth={2} />
+              </span>
+              <span className={superAdminStatValue}>{value}</span>
+            </div>
+            <p className={superAdminStatLabel}>{label}</p>
           </div>
-          <p className={superAdminStatLabel}>Total Schools</p>
-        </div>
-        <div className={superAdminStatCard}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[32px]">✅</span>
-            <span className={superAdminStatValue}>{stats.active}</span>
-          </div>
-          <p className={superAdminStatLabel}>Active Schools</p>
-        </div>
-        <div className={superAdminStatCard}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[32px]">🧑‍🎓</span>
-            <span className={superAdminStatValue}>{stats.totalStudents.toLocaleString()}</span>
-          </div>
-          <p className={superAdminStatLabel}>Total Students</p>
-        </div>
+        ))}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div className="flex-1 w-full md:w-auto">
+      <div className="card p-4 mb-5">
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-content-muted pointer-events-none" />
             <input
               type="text"
-              placeholder="Search schools by name, email or address..."
+              placeholder="Search by name, email or address..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+              className="input-field pl-9"
             />
           </div>
-          <div className="flex gap-3 w-full md:w-auto">
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-6 py-2.5 bg-[#7C3AED] text-white rounded-lg hover:bg-[#6D28D9] transition-colors font-[600] text-[13px] font-playfair whitespace-nowrap"
-            >
-              + Add New School
-            </button>
-          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="btn-primary flex items-center gap-2 whitespace-nowrap"
+          >
+            <Plus size={16} strokeWidth={2.5} />
+            Add School
+          </button>
         </div>
       </div>
 
       {loading ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <div className="w-12 h-12 border-4 border-[#7C3AED] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[14px] text-[#626060] font-playfair">Loading schools...</p>
+        <div className="card p-12 text-center">
+          <div className="spinner mx-auto mb-3" />
+          <p className="text-sm text-content-secondary">Loading schools...</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="table-wrapper">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">School</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Address</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Contact</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Students</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Status</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Created</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Actions</th>
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="table-header-cell">School</th>
+                  <th className="table-header-cell">Address</th>
+                  <th className="table-header-cell">Contact</th>
+                  <th className="table-header-cell">Students</th>
+                  <th className="table-header-cell">Status</th>
+                  <th className="table-header-cell">Created</th>
+                  <th className="table-header-cell">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-border">
                 {filteredSchools.map((school) => (
                   <motion.tr
                     key={school.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="hover:bg-gray-50 transition-colors"
+                    className="table-row"
                   >
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair mb-1">{school.name}</p>
-                        <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">ID: {school.id}</p>
-                      </div>
+                    <td className="table-cell">
+                      <p className="text-sm font-semibold text-content-primary">{school.name}</p>
+                      <p className="text-xs text-content-muted mt-0.5">ID: {school.id}</p>
                     </td>
-                    <td className="px-6 py-4">
-                      <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">{school.address}</p>
+                    <td className="table-cell">
+                      <p className="text-sm text-content-secondary">{school.address}</p>
                     </td>
-                    <td className="px-6 py-4">
-                      <p className="text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair mb-1">{school.phone || 'N/A'}</p>
-                      <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">{school.email || 'N/A'}</p>
+                    <td className="table-cell">
+                      <p className="text-sm text-content-secondary">{school.phone || 'N/A'}</p>
+                      <p className="text-xs text-content-muted mt-0.5">{school.email || 'N/A'}</p>
                     </td>
-                    <td className="px-6 py-4">
-                      <p className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">{school.studentCount || 0}</p>
+                    <td className="table-cell">
+                      <p className="text-sm font-semibold text-content-primary">{school.studentCount || 0}</p>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="table-cell">
                       <button
                         onClick={() => handleToggleStatus(school)}
-                        className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] transition-colors ${
-                          school.status === 'active' 
-                            ? 'bg-green-100 text-green-600 hover:bg-yellow-100 hover:text-yellow-600' 
-                            : 'bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-600'
-                        } font-playfair`}
+                        className={school.status === 'active' ? 'badge-success' : 'badge-muted'}
                       >
                         {school.status === 'active' ? 'Active' : 'Suspended'}
                       </button>
                     </td>
-                    <td className="px-6 py-4">
-                      <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">
-                        {formatDate(school.createdAt)}
-                      </p>
+                    <td className="table-cell">
+                      <p className="text-sm text-content-muted">{formatDate(school.createdAt)}</p>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => openEditModal(school)}
-                          className="p-2 text-[#7C3AED] hover:bg-[#F5F3FF] rounded-md transition-colors"
-                        >
-                          ✏️
+                    <td className="table-cell">
+                      <div className="flex gap-1">
+                        <button onClick={() => openEditModal(school)} className="action-btn-edit" aria-label="Edit">
+                          <Pencil size={15} strokeWidth={2} />
                         </button>
-                        <button
-                          onClick={() => openDeleteModal(school)}
-                          className="p-2 text-[#DC2626] hover:bg-[#FEF2F2] rounded-md transition-colors"
-                        >
-                          🗑️
+                        <button onClick={() => openDeleteModal(school)} className="action-btn-danger" aria-label="Delete">
+                          <Trash2 size={15} strokeWidth={2} />
                         </button>
                       </div>
                     </td>
@@ -339,7 +328,30 @@ export default function Schools() {
           </div>
           {filteredSchools.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-[14px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">No schools found</p>
+              <p className="text-sm text-content-muted">No schools found</p>
+            </div>
+          )}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-5 py-3 border-t border-border">
+              <p className="text-xs text-content-muted">
+                Page {page} of {totalPages} — {totalCount.toLocaleString()} total
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="pagination-btn"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="pagination-btn"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -358,52 +370,52 @@ export default function Schools() {
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="bg-white rounded-xl p-6 max-w-lg w-full mx-4"
+              className="modal-container p-6 w-full mx-4 max-w-lg"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className={modalTitle}>Add New School</h3>
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">School Name *</label>
+                  <label className="block mb-1.5 text-xs font-semibold text-content-secondary uppercase tracking-wider">School Name *</label>
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                    className="input-field"
                     placeholder="e.g., Kogi State College"
                   />
                 </div>
                 <div>
-                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">Address *</label>
+                  <label className="block mb-1.5 text-xs font-semibold text-content-secondary uppercase tracking-wider">Address *</label>
                   <input
                     type="text"
                     name="address"
                     value={formData.address}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                    className="input-field"
                     placeholder="123 Education Road, Lokoja"
                   />
                 </div>
                 <div>
-                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">Phone Number</label>
+                  <label className="block mb-1.5 text-xs font-semibold text-content-secondary uppercase tracking-wider">Phone Number</label>
                   <input
                     type="text"
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                    className="input-field"
                     placeholder="08012345678"
                   />
                 </div>
                 <div>
-                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">Email</label>
+                  <label className="block mb-1.5 text-xs font-semibold text-content-secondary uppercase tracking-wider">Email</label>
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                    className="input-field"
                     placeholder="info@school.edu.ng"
                   />
                 </div>
@@ -414,7 +426,7 @@ export default function Schools() {
                 </button>
                 <button
                   onClick={handleCreateSchool}
-                  className="px-4 py-2 bg-[#7C3AED] text-white rounded-md hover:bg-[#6D28D9] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  className="btn-primary"
                 >
                   Create School
                 </button>
@@ -435,49 +447,49 @@ export default function Schools() {
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="bg-white rounded-xl p-6 max-w-lg w-full mx-4"
+              className="modal-container p-6 w-full mx-4 max-w-lg"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className={modalTitle}>Edit School</h3>
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">School Name *</label>
+                  <label className="block mb-1.5 text-xs font-semibold text-content-secondary uppercase tracking-wider">School Name *</label>
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                    className="input-field"
                   />
                 </div>
                 <div>
-                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">Address *</label>
+                  <label className="block mb-1.5 text-xs font-semibold text-content-secondary uppercase tracking-wider">Address *</label>
                   <input
                     type="text"
                     name="address"
                     value={formData.address}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                    className="input-field"
                   />
                 </div>
                 <div>
-                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">Phone Number</label>
+                  <label className="block mb-1.5 text-xs font-semibold text-content-secondary uppercase tracking-wider">Phone Number</label>
                   <input
                     type="text"
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                    className="input-field"
                   />
                 </div>
                 <div>
-                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">Email</label>
+                  <label className="block mb-1.5 text-xs font-semibold text-content-secondary uppercase tracking-wider">Email</label>
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                    className="input-field"
                   />
                 </div>
               </div>
@@ -487,7 +499,7 @@ export default function Schools() {
                 </button>
                 <button
                   onClick={handleUpdateSchool}
-                  className="px-4 py-2 bg-[#7C3AED] text-white rounded-md hover:bg-[#6D28D9] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  className="btn-primary"
                 >
                   Update School
                 </button>

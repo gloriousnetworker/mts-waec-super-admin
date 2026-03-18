@@ -20,6 +20,8 @@ import {
   superAdminStatLabel
 } from '../../styles/styles';
 
+const PAGE_SIZE = 50;
+
 export default function Students() {
   const { fetchWithAuth } = useSuperAdminAuth();
   const [students, setStudents] = useState([]);
@@ -31,26 +33,30 @@ export default function Students() {
   const [filterSchool, setFilterSchool] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortBy, setSortBy] = useState('name');
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [page]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const [studentsRes, schoolsRes] = await Promise.all([
-        fetchWithAuth('/super-admin/students'),
+        fetchWithAuth(`/super-admin/students?limit=${PAGE_SIZE}&page=${page}`),
         fetchWithAuth('/super-admin/schools')
       ]);
 
       if (studentsRes.ok) {
         const studentsData = await studentsRes.json();
-        setStudents(studentsData.students || []);
+        const list = studentsData.data || studentsData.students || [];
+        setStudents(list);
+        setTotalCount(studentsData.total || list.length);
       } else {
         toast.error('Failed to load students');
       }
-      
+
       if (schoolsRes.ok) {
         const schoolsData = await schoolsRes.json();
         setSchools(schoolsData.schools || []);
@@ -123,8 +129,10 @@ export default function Students() {
     return 0;
   });
 
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
   const stats = {
-    total: students.length,
+    total: totalCount,
     active: students.filter(s => s.status === 'active').length,
     totalExams: students.reduce((acc, s) => acc + (s.examsTaken || 0), 0)
   };
@@ -133,7 +141,7 @@ export default function Students() {
     <div className={examsContainer}>
       <div className={examsHeader}>
         <h1 className={examsTitle}>Student Overview</h1>
-        <p className={examsSubtitle}>Track all students across Kogi State</p>
+        <p className={examsSubtitle}>Track all students on the platform</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
@@ -160,7 +168,7 @@ export default function Students() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+      <div className="card p-6 mb-6">
         <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
           <div className="flex-1 w-full lg:w-auto">
             <input
@@ -168,14 +176,14 @@ export default function Students() {
               placeholder="Search students by name, email, login ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+              className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-brand-primary text-[13px]"
             />
           </div>
           <div className="flex flex-wrap gap-3 w-full lg:w-auto">
             <select
               value={filterSchool}
               onChange={(e) => setFilterSchool(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+              className="px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-brand-primary text-[13px]"
             >
               <option value="all">All Schools</option>
               {schools.map(school => (
@@ -185,16 +193,16 @@ export default function Students() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+              className="px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-brand-primary text-[13px]"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="suspended">Suspended</option>
             </select>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+              className="px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-brand-primary text-[13px]"
             >
               <option value="name">Sort by Name</option>
               <option value="recent">Sort by Recent</option>
@@ -204,69 +212,69 @@ export default function Students() {
       </div>
 
       {loading ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <div className="w-12 h-12 border-4 border-[#7C3AED] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[14px] text-[#626060] font-playfair">Loading students...</p>
+        <div className="card p-12 text-center">
+          <div className="spinner mx-auto mb-3" />
+          <p className="text-[14px] text-content-secondary">Loading students...</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-surface-muted border-b border-border">
                 <tr>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Student</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">School</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Class</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Login ID</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Email</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Status</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Created</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Actions</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Student</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">School</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Class</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Login ID</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Created</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-border">
                 {sortedStudents.map((student) => (
                   <motion.tr
                     key={student.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="hover:bg-gray-50 transition-colors"
+                    className="hover:bg-surface-subtle transition-colors"
                   >
                     <td className="px-6 py-4">
                       <div>
-                        <p className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair mb-1">
+                        <p className="text-[14px] leading-[100%] font-[600] text-content-primary mb-1">
                           {student.firstName} {student.lastName}
                         </p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">
+                      <p className="text-[13px] leading-[100%] font-[500] text-content-primary">
                         {schools.find(s => s.id === student.schoolId)?.name || 'N/A'}
                       </p>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">{student.class || 'N/A'}</p>
+                      <p className="text-[13px] leading-[100%] font-[500] text-content-primary">{student.class || 'N/A'}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">{student.loginId || 'N/A'}</p>
+                      <p className="text-[13px] leading-[100%] font-[500] text-content-primary">{student.loginId || 'N/A'}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">{student.email || 'N/A'}</p>
+                      <p className="text-[12px] leading-[100%] font-[400] text-content-secondary">{student.email || 'N/A'}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getStatusColor(student.status)} font-playfair`}>
+                      <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getStatusColor(student.status)}`}>
                         {student.status}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">
+                      <p className="text-[12px] leading-[100%] font-[400] text-content-secondary">
                         {formatDate(student.createdAt)}
                       </p>
                     </td>
                     <td className="px-6 py-4">
                       <button
                         onClick={() => fetchStudentDetails(student)}
-                        className="p-2 text-[#7C3AED] hover:bg-[#F5F3FF] rounded-md transition-colors"
+                        className="p-2 text-brand-primary hover:bg-brand-primary-lt rounded-md transition-colors"
                       >
                         👁️
                       </button>
@@ -278,7 +286,30 @@ export default function Students() {
           </div>
           {sortedStudents.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-[14px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">No students found</p>
+              <p className="text-[14px] leading-[100%] font-[400] text-content-muted">No students found</p>
+            </div>
+          )}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-border">
+              <p className="text-[12px] text-content-secondary">
+                Page {page} of {totalPages} &mdash; {totalCount.toLocaleString()} total students
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1.5 text-[12px] border border-border rounded-md hover:bg-surface-subtle disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-3 py-1.5 text-[12px] border border-border rounded-md hover:bg-surface-subtle disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -316,31 +347,31 @@ export default function Students() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div className="space-y-4">
                   <div>
-                    <p className="text-[11px] leading-[100%] font-[500] text-[#626060] uppercase mb-2 font-playfair">Personal Information</p>
-                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <p className="text-[11px] leading-[100%] font-[500] text-content-secondary uppercase mb-2">Personal Information</p>
+                    <div className="bg-surface-muted rounded-lg p-4 space-y-3">
                       <div>
-                        <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Full Name</p>
-                        <p className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair mt-1">
+                        <p className="text-[10px] leading-[100%] font-[400] text-content-muted">Full Name</p>
+                        <p className="text-[14px] leading-[100%] font-[600] text-content-primary mt-1">
                           {selectedStudent.firstName} {selectedStudent.lastName}
                         </p>
                       </div>
                       {selectedStudent.middleName && (
                         <div>
-                          <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Middle Name</p>
-                          <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair mt-1">{selectedStudent.middleName}</p>
+                          <p className="text-[10px] leading-[100%] font-[400] text-content-muted">Middle Name</p>
+                          <p className="text-[13px] leading-[100%] font-[500] text-content-primary mt-1">{selectedStudent.middleName}</p>
                         </div>
                       )}
                       <div>
-                        <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Email</p>
-                        <p className="text-[13px] leading-[100%] font-[500] text-[#7C3AED] font-playfair mt-1">{selectedStudent.email}</p>
+                        <p className="text-[10px] leading-[100%] font-[400] text-content-muted">Email</p>
+                        <p className="text-[13px] leading-[100%] font-[500] text-brand-primary mt-1">{selectedStudent.email}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Phone</p>
-                        <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair mt-1">{selectedStudent.phone || 'N/A'}</p>
+                        <p className="text-[10px] leading-[100%] font-[400] text-content-muted">Phone</p>
+                        <p className="text-[13px] leading-[100%] font-[500] text-content-primary mt-1">{selectedStudent.phone || 'N/A'}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Date of Birth</p>
-                        <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair mt-1">{selectedStudent.dateOfBirth || 'N/A'}</p>
+                        <p className="text-[10px] leading-[100%] font-[400] text-content-muted">Date of Birth</p>
+                        <p className="text-[13px] leading-[100%] font-[500] text-content-primary mt-1">{selectedStudent.dateOfBirth || 'N/A'}</p>
                       </div>
                     </div>
                   </div>
@@ -348,31 +379,31 @@ export default function Students() {
 
                 <div className="space-y-4">
                   <div>
-                    <p className="text-[11px] leading-[100%] font-[500] text-[#626060] uppercase mb-2 font-playfair">Academic Information</p>
-                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <p className="text-[11px] leading-[100%] font-[500] text-content-secondary uppercase mb-2">Academic Information</p>
+                    <div className="bg-surface-muted rounded-lg p-4 space-y-3">
                       <div>
-                        <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">School</p>
-                        <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair mt-1">
+                        <p className="text-[10px] leading-[100%] font-[400] text-content-muted">School</p>
+                        <p className="text-[13px] leading-[100%] font-[500] text-content-primary mt-1">
                           {schools.find(s => s.id === selectedStudent.schoolId)?.name || 'N/A'}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Class</p>
-                        <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair mt-1">{selectedStudent.class || 'N/A'}</p>
+                        <p className="text-[10px] leading-[100%] font-[400] text-content-muted">Class</p>
+                        <p className="text-[13px] leading-[100%] font-[500] text-content-primary mt-1">{selectedStudent.class || 'N/A'}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Login ID</p>
-                        <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair mt-1">{selectedStudent.loginId}</p>
+                        <p className="text-[10px] leading-[100%] font-[400] text-content-muted">Login ID</p>
+                        <p className="text-[13px] leading-[100%] font-[500] text-content-primary mt-1">{selectedStudent.loginId}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Status</p>
-                        <span className={`inline-block px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] mt-1 ${getStatusColor(selectedStudent.status)} font-playfair`}>
+                        <p className="text-[10px] leading-[100%] font-[400] text-content-muted">Status</p>
+                        <span className={`inline-block px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] mt-1 ${getStatusColor(selectedStudent.status)}`}>
                           {selectedStudent.status}
                         </span>
                       </div>
                       {selectedStudent.subjects && selectedStudent.subjects.length > 0 && (
                         <div>
-                          <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Subjects</p>
+                          <p className="text-[10px] leading-[100%] font-[400] text-content-muted">Subjects</p>
                           <div className="flex flex-wrap gap-1 mt-1">
                             {selectedStudent.subjects?.map((subject, i) => (
                               <span key={i} className="px-2 py-1 bg-blue-100 text-blue-600 rounded-full text-[9px] leading-[100%] font-[500]">
@@ -383,15 +414,15 @@ export default function Students() {
                         </div>
                       )}
                       <div>
-                        <p className="text-[10px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">Exam Mode</p>
-                        <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair mt-1">{selectedStudent.examMode ? 'Enabled' : 'Disabled'}</p>
+                        <p className="text-[10px] leading-[100%] font-[400] text-content-muted">Exam Mode</p>
+                        <p className="text-[13px] leading-[100%] font-[500] text-content-primary mt-1">{selectedStudent.examMode ? 'Enabled' : 'Disabled'}</p>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <div className="flex justify-end gap-3 pt-4 border-t border-border">
                 <button
                   onClick={() => setShowDetailsModal(false)}
                   className={modalButtonSecondary}

@@ -21,11 +21,15 @@ import {
   superAdminStatLabel
 } from '../../styles/styles';
 
+const PAGE_SIZE = 50;
+
 export default function Admins() {
   const { fetchWithAuth } = useSuperAdminAuth();
   const [admins, setAdmins] = useState([]);
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -35,39 +39,40 @@ export default function Admins() {
   const [filterSchool, setFilterSchool] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPlan, setFilterPlan] = useState('all');
-  const [subscriptionPlans, setSubscriptionPlans] = useState([
-    { id: 'monthly', name: 'Monthly', price: 15000 },
-    { id: 'termly', name: 'Termly', price: 42000 },
-    { id: 'yearly', name: 'Yearly', price: 120000 },
-    { id: 'unlimited', name: 'Unlimited', price: 500000 }
+  const [subscriptionPlans] = useState([
+    { id: 'basic',    name: 'Basic',    price: 15000 },
+    { id: 'standard', name: 'Standard', price: 35000 },
+    { id: 'premium',  name: 'Premium',  price: 60000 },
   ]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     schoolId: '',
-    password: 'Admin123!',
+    password: '',
     subscription: {
-      plan: 'monthly'
+      plan: 'basic'
     }
   });
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [page]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const [adminsRes, schoolsRes] = await Promise.all([
-        fetchWithAuth('/super-admin/admins'),
+        fetchWithAuth(`/super-admin/admins?limit=${PAGE_SIZE}&page=${page}`),
         fetchWithAuth('/super-admin/schools')
       ]);
 
       if (adminsRes.ok) {
         const adminsData = await adminsRes.json();
-        setAdmins(adminsData.admins || []);
+        const list = adminsData.data || adminsData.admins || [];
+        setAdmins(list);
+        setTotalCount(adminsData.total || list.length);
       }
-      
+
       if (schoolsRes.ok) {
         const schoolsData = await schoolsRes.json();
         setSchools(schoolsData.schools || []);
@@ -92,8 +97,8 @@ export default function Admins() {
   };
 
   const handleCreateAdmin = async () => {
-    if (!formData.name || !formData.email || !formData.schoolId) {
-      toast.error('Please fill in all required fields');
+    if (!formData.name || !formData.email || !formData.schoolId || !formData.password) {
+      toast.error('Please fill in all required fields including password');
       return;
     }
 
@@ -114,8 +119,8 @@ export default function Admins() {
           name: '',
           email: '',
           schoolId: '',
-          password: 'Admin123!',
-          subscription: { plan: 'monthly' }
+          password: '',
+          subscription: { plan: 'basic' }
         });
         fetchData();
       } else {
@@ -154,8 +159,8 @@ export default function Admins() {
           name: '',
           email: '',
           schoolId: '',
-          password: 'Admin123!',
-          subscription: { plan: 'monthly' }
+          password: '',
+          subscription: { plan: 'basic' }
         });
         fetchData();
       } else {
@@ -211,7 +216,8 @@ export default function Admins() {
   };
 
   const handleActivateSubscription = async (admin) => {
-    if (!admin.subscription?.plan) {
+    const selectedPlan = formData.subscription?.plan;
+    if (!selectedPlan) {
       toast.error('Please select a subscription plan first');
       return;
     }
@@ -221,7 +227,7 @@ export default function Admins() {
     try {
       const response = await fetchWithAuth(`/super-admin/admins/${admin.id}/subscription/activate`, {
         method: 'POST',
-        body: JSON.stringify({ plan: admin.subscription.plan })
+        body: JSON.stringify({ plan: selectedPlan })
       });
 
       const data = await response.json();
@@ -264,8 +270,8 @@ export default function Admins() {
       name: admin.name || '',
       email: admin.email || '',
       schoolId: admin.schoolId || '',
-      password: 'Admin123!',
-      subscription: admin.subscription || { plan: 'monthly' }
+      password: '',
+      subscription: admin.subscription || { plan: 'basic' }
     });
     setShowEditModal(true);
   };
@@ -302,11 +308,10 @@ export default function Admins() {
 
   const getPlanColor = (plan) => {
     switch(plan) {
-      case 'monthly': return 'bg-blue-100 text-blue-600';
-      case 'termly': return 'bg-purple-100 text-purple-600';
-      case 'yearly': return 'bg-green-100 text-green-600';
-      case 'unlimited': return 'bg-indigo-100 text-indigo-600';
-      default: return 'bg-gray-100 text-gray-600';
+      case 'basic':    return 'badge-brand';
+      case 'standard': return 'badge-info';
+      case 'premium':  return 'badge-gold';
+      default:         return 'badge-muted';
     }
   };
 
@@ -319,13 +324,13 @@ export default function Admins() {
     return matchesSearch && matchesSchool && matchesStatus && matchesPlan;
   });
 
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
   const stats = {
-    total: admins.length,
+    total: totalCount,
     active: admins.filter(a => a.status === 'active').length,
     expired: admins.filter(a => a.status === 'expired').length,
-    monthly: admins.filter(a => a.subscription?.plan === 'monthly').length,
-    termly: admins.filter(a => a.subscription?.plan === 'termly').length,
-    yearly: admins.filter(a => a.subscription?.plan === 'yearly').length
+    premium: admins.filter(a => a.subscription?.plan === 'premium').length,
   };
 
   return (
@@ -359,14 +364,14 @@ export default function Admins() {
         </div>
         <div className={superAdminStatCard}>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[32px]">📅</span>
-            <span className={superAdminStatValue}>{stats.yearly}</span>
+            <span className="text-[32px]">⭐</span>
+            <span className={superAdminStatValue}>{stats.premium}</span>
           </div>
-          <p className={superAdminStatLabel}>Yearly Plans</p>
+          <p className={superAdminStatLabel}>Premium Plans</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+      <div className="card p-6 mb-6">
         <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
           <div className="flex-1 w-full lg:w-auto">
             <input
@@ -374,14 +379,14 @@ export default function Admins() {
               placeholder="Search admins by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+              className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-brand-primary text-[13px]"
             />
           </div>
           <div className="flex flex-wrap gap-3 w-full lg:w-auto">
             <select
               value={filterSchool}
               onChange={(e) => setFilterSchool(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+              className="px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-brand-primary text-[13px]"
             >
               <option value="all">All Schools</option>
               {schools.map(school => (
@@ -391,7 +396,7 @@ export default function Admins() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+              className="px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-brand-primary text-[13px]"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -401,17 +406,16 @@ export default function Admins() {
             <select
               value={filterPlan}
               onChange={(e) => setFilterPlan(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+              className="px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-brand-primary text-[13px]"
             >
               <option value="all">All Plans</option>
-              <option value="monthly">Monthly</option>
-              <option value="termly">Termly</option>
-              <option value="yearly">Yearly</option>
-              <option value="unlimited">Unlimited</option>
+              <option value="basic">Basic</option>
+              <option value="standard">Standard</option>
+              <option value="premium">Premium</option>
             </select>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-6 py-2.5 bg-[#7C3AED] text-white rounded-lg hover:bg-[#6D28D9] transition-colors font-[600] text-[13px] font-playfair whitespace-nowrap"
+              className="px-6 py-2.5 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dk transition-colors font-[600] text-[13px] whitespace-nowrap"
             >
               + Add New Admin
             </button>
@@ -420,41 +424,41 @@ export default function Admins() {
       </div>
 
       {loading ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <div className="w-12 h-12 border-4 border-[#7C3AED] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[14px] text-[#626060] font-playfair">Loading admins...</p>
+        <div className="card p-12 text-center">
+          <div className="spinner mx-auto mb-3" />
+          <p className="text-[14px] text-content-secondary">Loading admins...</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-surface-muted border-b border-border">
                 <tr>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Admin</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">School</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Status</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Subscription</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Expiry</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Created</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Actions</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Admin</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">School</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Subscription</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Expiry</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Created</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-border">
                 {filteredAdmins.map((admin) => (
                   <motion.tr
                     key={admin.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="hover:bg-gray-50 transition-colors"
+                    className="hover:bg-surface-subtle transition-colors"
                   >
                     <td className="px-6 py-4">
                       <div>
-                        <p className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair mb-1">{admin.name}</p>
-                        <p className="text-[11px] leading-[100%] font-[400] text-[#626060] font-playfair">{admin.email}</p>
+                        <p className="text-[14px] leading-[100%] font-[600] text-content-primary mb-1">{admin.name}</p>
+                        <p className="text-[11px] leading-[100%] font-[400] text-content-secondary">{admin.email}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">
+                      <p className="text-[13px] leading-[100%] font-[500] text-content-primary">
                         {schools.find(s => s.id === admin.schoolId)?.name || 'N/A'}
                       </p>
                     </td>
@@ -467,30 +471,30 @@ export default function Admins() {
                             : admin.status === 'expired'
                             ? 'bg-yellow-100 text-yellow-600 hover:bg-green-100 hover:text-green-600'
                             : 'bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-600'
-                        } font-playfair`}
+                        }`}
                       >
                         {admin.status}
                       </button>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getPlanColor(admin.subscription?.plan)} font-playfair`}>
+                      <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getPlanColor(admin.subscription?.plan)}`}>
                         {admin.subscription?.plan || 'N/A'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <div>
-                        <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">
+                        <p className="text-[12px] leading-[100%] font-[400] text-content-secondary">
                           {formatDate(admin.subscription?.expiryDate)}
                         </p>
                         {admin.subscriptionStatus?.daysLeft > 0 && (
-                          <p className="text-[10px] leading-[100%] font-[400] text-green-600 mt-1 font-playfair">
+                          <p className="text-[10px] leading-[100%] font-[400] text-green-600 mt-1">
                             {admin.subscriptionStatus.daysLeft} days left
                           </p>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">
+                      <p className="text-[12px] leading-[100%] font-[400] text-content-secondary">
                         {formatDate(admin.createdAt)}
                       </p>
                     </td>
@@ -505,7 +509,7 @@ export default function Admins() {
                         </button>
                         <button
                           onClick={() => openEditModal(admin)}
-                          className="p-2 text-[#7C3AED] hover:bg-[#F5F3FF] rounded-md transition-colors"
+                          className="p-2 text-brand-primary hover:bg-brand-primary-lt rounded-md transition-colors"
                           title="Edit Admin"
                         >
                           ✏️
@@ -526,7 +530,30 @@ export default function Admins() {
           </div>
           {filteredAdmins.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-[14px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">No admins found</p>
+              <p className="text-[14px] leading-[100%] font-[400] text-content-muted">No admins found</p>
+            </div>
+          )}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-border">
+              <p className="text-[12px] text-content-secondary">
+                Page {page} of {totalPages} &mdash; {totalCount.toLocaleString()} total admins
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1.5 text-[12px] border border-border rounded-md hover:bg-surface-subtle disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-3 py-1.5 text-[12px] border border-border rounded-md hover:bg-surface-subtle disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -552,34 +579,34 @@ export default function Admins() {
               
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">Full Name *</label>
+                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-content-secondary">Full Name *</label>
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                     placeholder="John Admin"
                   />
                 </div>
                 <div>
-                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">Email *</label>
+                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-content-secondary">Email *</label>
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                     placeholder="admin@school.edu.ng"
                   />
                 </div>
                 <div>
-                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">School *</label>
+                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-content-secondary">School *</label>
                   <select
                     name="schoolId"
                     value={formData.schoolId}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                   >
                     <option value="">Select School</option>
                     {schools.map(school => (
@@ -588,14 +615,26 @@ export default function Admins() {
                   </select>
                 </div>
                 <div>
-                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">Subscription Plan *</label>
+                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-content-secondary">Password *</label>
+                  <input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
+                    placeholder="Minimum 8 characters"
+                    autoComplete="new-password"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-content-secondary">Subscription Plan *</label>
                   <select
                     value={formData.subscription.plan}
                     onChange={(e) => handleSubscriptionChange(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                   >
                     {subscriptionPlans.map(plan => (
-                      <option key={plan.id} value={plan.id}>{plan.name} - ₦{plan.price.toLocaleString()}</option>
+                      <option key={plan.id} value={plan.id}>{plan.name} — ₦{plan.price.toLocaleString()}</option>
                     ))}
                   </select>
                 </div>
@@ -610,7 +649,7 @@ export default function Admins() {
                 </button>
                 <button
                   onClick={handleCreateAdmin}
-                  className="px-4 py-2 bg-[#7C3AED] text-white rounded-md hover:bg-[#6D28D9] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  className="px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk transition-colors text-[13px] leading-[100%] font-[600]"
                 >
                   Create Admin
                 </button>
@@ -638,31 +677,31 @@ export default function Admins() {
               
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">Full Name *</label>
+                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-content-secondary">Full Name *</label>
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                   />
                 </div>
                 <div>
-                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">Email *</label>
+                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-content-secondary">Email *</label>
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                   />
                 </div>
                 <div>
-                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">Subscription Plan *</label>
+                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-content-secondary">Subscription Plan *</label>
                   <select
                     value={formData.subscription.plan}
                     onChange={(e) => handleSubscriptionChange(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                   >
                     {subscriptionPlans.map(plan => (
                       <option key={plan.id} value={plan.id}>{plan.name}</option>
@@ -680,7 +719,7 @@ export default function Admins() {
                 </button>
                 <button
                   onClick={handleUpdateAdmin}
-                  className="px-4 py-2 bg-[#7C3AED] text-white rounded-md hover:bg-[#6D28D9] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  className="px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk transition-colors text-[13px] leading-[100%] font-[600]"
                 >
                   Update Admin
                 </button>
@@ -705,24 +744,24 @@ export default function Admins() {
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className={modalTitle}>Manage Subscription</h3>
-              <p className="text-[13px] leading-[140%] text-[#626060] mb-4 font-playfair">
+              <p className="text-[13px] leading-[140%] text-content-secondary mb-4">
                 {selectedAdmin.name} - {selectedAdmin.email}
               </p>
               
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">Current Plan</label>
-                  <p className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">
+                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-content-secondary">Current Plan</label>
+                  <p className="text-[14px] leading-[100%] font-[600] text-content-primary">
                     {selectedAdmin.subscription?.plan || 'No active plan'}
                   </p>
                 </div>
                 
                 <div>
-                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">New Plan</label>
+                  <label className="block mb-2 text-[11px] leading-[100%] font-[500] text-content-secondary">New Plan</label>
                   <select
                     value={formData.subscription.plan}
                     onChange={(e) => handleSubscriptionChange(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                   >
                     {subscriptionPlans.map(plan => (
                       <option key={plan.id} value={plan.id}>{plan.name} - ₦{plan.price.toLocaleString()}</option>
@@ -735,21 +774,21 @@ export default function Admins() {
                 {selectedAdmin.subscription?.active ? (
                   <button
                     onClick={() => handleDeactivateSubscription(selectedAdmin)}
-                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-[13px] leading-[100%] font-[600]"
                   >
                     Deactivate
                   </button>
                 ) : (
                   <button
                     onClick={() => handleActivateSubscription(selectedAdmin)}
-                    className="flex-1 px-4 py-2 bg-[#7C3AED] text-white rounded-md hover:bg-[#6D28D9] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                    className="flex-1 px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk transition-colors text-[13px] leading-[100%] font-[600]"
                   >
                     Activate
                   </button>
                 )}
                 <button
                   onClick={() => setShowSubscriptionModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-[13px] font-playfair"
+                  className="flex-1 px-4 py-2 border border-border rounded-md hover:bg-surface-subtle text-[13px]"
                 >
                   Cancel
                 </button>

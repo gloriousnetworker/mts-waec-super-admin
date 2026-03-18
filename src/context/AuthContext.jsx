@@ -65,12 +65,11 @@ export function SuperAdminAuthProvider({ children }) {
             tempToken: data.tempToken,
             message: data.message
           };
-        } else if (data.user && data.tokens) {
+        } else if (data.user) {
           setUser(data.user);
-          return { 
-            success: true, 
-            user: data.user,
-            tokens: data.tokens
+          return {
+            success: true,
+            user: data.user
           };
         }
       }
@@ -102,12 +101,11 @@ export function SuperAdminAuthProvider({ children }) {
 
       const data = await response.json();
 
-      if (response.ok && data.user && data.tokens) {
+      if (response.ok && data.user) {
         setUser(data.user);
-        return { 
-          success: true, 
-          user: data.user,
-          tokens: data.tokens
+        return {
+          success: true,
+          user: data.user
         };
       }
       

@@ -7,11 +7,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useSuperAdminAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast'
 import Image from 'next/image'
+import { Eye, EyeOff, Shield } from 'lucide-react'
 
 export default function SuperAdminLoginPage() {
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
-  const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [focusedField, setFocusedField] = useState(null)
@@ -21,9 +21,7 @@ export default function SuperAdminLoginPage() {
   const currentYear = new Date().getFullYear()
   const [mounted, setMounted] = useState(false)
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     if (mounted && authChecked && isAuthenticated) {
@@ -40,15 +38,15 @@ export default function SuperAdminLoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!identifier || !password) {
-      toast.error('Please enter your super admin credentials')
+      toast.error('Please enter your credentials')
       return
     }
     setLoading(true)
-    const loginToast = toast.loading('Accessing Super Admin Portal...')
-    
+    const loginToast = toast.loading('Signing in...')
+
     try {
       const result = await login(identifier, password)
-      
+
       if (result.requiresTwoFactor) {
         toast.dismiss(loginToast)
         if (result.userId && result.tempToken) {
@@ -58,16 +56,13 @@ export default function SuperAdminLoginPage() {
           setLoading(false)
         }
       } else if (result.success) {
-        toast.success('Welcome back, Super Admin!', { id: loginToast })
-        setTimeout(() => {
-          router.replace('/dashboard')
-        }, 1500)
+        toast.success('Welcome back!', { id: loginToast })
+        setTimeout(() => router.replace('/dashboard'), 1200)
       } else {
-        toast.error(result.message || 'Invalid super admin credentials', { id: loginToast })
+        toast.error(result.message || 'Invalid credentials', { id: loginToast })
         setLoading(false)
       }
     } catch (error) {
-      console.error('Login error:', error)
       toast.error(error.message || 'Authentication failed. Please try again.', { id: loginToast })
       setLoading(false)
     }
@@ -77,93 +72,55 @@ export default function SuperAdminLoginPage() {
     toast.error('Please contact your system administrator to reset your password')
   }
 
+  const inputStyle = (field) => ({
+    position: 'relative',
+    borderRadius: '12px',
+    border: `1.5px solid ${focusedField === field ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.12)'}`,
+    background: focusedField === field ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
+    transition: 'all 0.15s',
+  })
+
   return (
     <>
+      {/* Background */}
       <div style={{
         position: 'fixed',
         inset: 0,
-        background: 'linear-gradient(135deg, #0a0f2e 0%, #1a237e 30%, #1565c0 60%, #0d47a1 100%)',
+        background: 'linear-gradient(135deg, #1F2A49 0%, #1a2340 50%, #141C33 100%)',
         zIndex: 0,
         overflow: 'hidden',
       }}>
-        {[...Array(5)].map((_, i) => (
-          <motion.div
-            key={i}
-            animate={{
-              scale: [1, 1.3, 1],
-              opacity: [0.03, 0.08, 0.03],
-              x: [0, 20, 0],
-              y: [0, -20, 0],
-            }}
-            transition={{
-              duration: 6 + i * 1.5,
-              repeat: Infinity,
-              ease: 'easeInOut',
-              delay: i * 1.2,
-            }}
-            style={{
-              position: 'absolute',
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(100,181,246,0.5) 0%, transparent 70%)',
-              width: `${300 + i * 100}px`,
-              height: `${300 + i * 100}px`,
-              left: `${-5 + i * 20}%`,
-              top: `${-10 + i * 18}%`,
-              pointerEvents: 'none',
-            }}
-          />
-        ))}
+        {/* Ghost logo */}
         <div style={{
           position: 'absolute',
           inset: 0,
-          background: 'radial-gradient(ellipse at 30% 60%, rgba(21,101,192,0.25) 0%, transparent 60%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           pointerEvents: 'none',
-        }} />
+          userSelect: 'none',
+        }}>
+          <div style={{ position: 'relative', width: 560, height: 560, opacity: 0.04 }}>
+            <Image src="/logo.png" alt="" fill className="object-contain" priority />
+          </div>
+        </div>
+        {/* Radial glow */}
         <div style={{
           position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: '40%',
-          background: 'linear-gradient(to top, rgba(10,15,46,0.8) 0%, transparent 100%)',
-          pointerEvents: 'none',
-        }} />
-        <div style={{
-          position: 'absolute',
-          top: '10%',
-          left: '5%',
-          width: '120px',
-          height: '120px',
-          opacity: 0.04,
-          border: '1px solid rgba(255,255,255,0.8)',
-          borderRadius: '50%',
-          pointerEvents: 'none',
-        }} />
-        <div style={{
-          position: 'absolute',
-          bottom: '15%',
-          right: '8%',
-          width: '200px',
-          height: '200px',
-          opacity: 0.03,
-          border: '1px solid rgba(255,255,255,0.8)',
-          borderRadius: '50%',
+          inset: 0,
+          background: 'radial-gradient(ellipse 700px 500px at 50% 50%, rgba(58,79,122,0.30) 0%, transparent 70%)',
           pointerEvents: 'none',
         }} />
       </div>
 
+      {/* Loading overlay */}
       <AnimatePresence>
         {loading && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 9999,
-              background: '#0a0f2e',
-            }}
+            style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#141C33' }}
           >
             <video
               ref={videoRef}
@@ -178,6 +135,7 @@ export default function SuperAdminLoginPage() {
         )}
       </AnimatePresence>
 
+      {/* Card */}
       <div style={{
         position: 'fixed',
         inset: 0,
@@ -186,160 +144,152 @@ export default function SuperAdminLoginPage() {
         justifyContent: 'center',
         zIndex: 20,
         padding: '16px',
+        overflowY: 'auto',
       }}>
         <motion.div
-          initial={{ opacity: 0, y: 24, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           style={{
             width: '100%',
-            maxWidth: '440px',
-            background: 'rgba(255,255,255,0.04)',
+            maxWidth: '420px',
+            background: 'rgba(255,255,255,0.05)',
             backdropFilter: 'blur(40px)',
             WebkitBackdropFilter: 'blur(40px)',
-            border: '1px solid rgba(255,255,255,0.12)',
+            border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: '24px',
-            padding: '40px 36px',
-            boxShadow: '0 40px 100px rgba(0,0,0,0.5), 0 0 0 1px rgba(100,181,246,0.05)',
+            padding: '40px 32px',
+            boxShadow: '0 40px 100px rgba(0,0,0,0.5)',
           }}
         >
+          {/* Logo + heading */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15, duration: 0.5 }}
-            style={{ textAlign: 'center', marginBottom: '36px' }}
+            transition={{ delay: 0.1 }}
+            style={{ textAlign: 'center', marginBottom: '32px' }}
           >
             <div style={{
-              width: '72px',
-              height: '72px',
-              borderRadius: '18px',
-              background: 'rgba(255,255,255,0.08)',
-              border: '1px solid rgba(255,255,255,0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 20px',
-              boxShadow: '0 0 30px rgba(100,181,246,0.2)',
+              position: 'relative',
+              display: 'inline-block',
+              marginBottom: '20px',
             }}>
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                borderRadius: '50%',
+                filter: 'blur(24px)',
+                transform: 'scale(2)',
+                background: 'rgba(58,79,122,0.35)',
+              }} />
               <Image
                 src="/logo.png"
-                alt="Mega Tech Solutions"
-                width={44}
-                height={44}
-                style={{ objectFit: 'contain' }}
+                alt="Einstein's CBT App"
+                width={72}
+                height={72}
+                priority
+                style={{ objectFit: 'contain', position: 'relative', zIndex: 1 }}
               />
             </div>
+
             <h1 style={{
               fontSize: '26px',
               fontWeight: 700,
               letterSpacing: '-0.03em',
               color: '#ffffff',
-              marginBottom: '4px',
+              marginBottom: '6px',
               fontFamily: '"Playfair Display", serif',
             }}>
-              MEGA TECH
+              Einstein's CBT
             </h1>
             <p style={{
               fontSize: '13px',
-              fontWeight: 500,
-              color: 'rgba(255,255,255,0.5)',
-              fontFamily: '"Playfair Display", serif',
-              letterSpacing: '0.02em',
+              color: 'rgba(255,255,255,0.45)',
+              fontFamily: 'Inter, sans-serif',
+              marginBottom: '12px',
             }}>
-              Solutions · Super Admin Portal
+              Super Admin Portal
             </p>
-            <div style={{
-              marginTop: '12px',
-              display: 'inline-block',
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
               padding: '4px 12px',
               borderRadius: '100px',
-              background: 'rgba(100,181,246,0.1)',
-              border: '1px solid rgba(100,181,246,0.2)',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              fontSize: '11px',
+              color: 'rgba(255,255,255,0.4)',
+              fontFamily: 'Inter, sans-serif',
+              letterSpacing: '0.02em',
             }}>
-              <p style={{
-                fontSize: '10px',
-                color: 'rgba(144,202,249,0.8)',
-                fontFamily: '"Playfair Display", serif',
-                letterSpacing: '0.05em',
-              }}>
-                Kogi State Ministry of Education
-              </p>
-            </div>
+              <Shield size={11} strokeWidth={2.5} style={{ color: 'rgba(255,255,255,0.5)' }} />
+              Restricted Access
+            </span>
           </motion.div>
 
+          {/* Form */}
           <motion.form
             onSubmit={handleSubmit}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.25, duration: 0.5 }}
-            style={{ marginBottom: '28px' }}
+            transition={{ delay: 0.2 }}
           >
-            <div style={{ marginBottom: '20px' }}>
+            {/* Email */}
+            <div style={{ marginBottom: '16px' }}>
               <label style={{
                 display: 'block',
                 marginBottom: '8px',
                 fontSize: '12px',
                 fontWeight: 500,
-                color: 'rgba(255,255,255,0.6)',
-                fontFamily: '"Playfair Display", serif',
-                letterSpacing: '0.05em',
+                color: 'rgba(255,255,255,0.55)',
+                fontFamily: 'Inter, sans-serif',
+                letterSpacing: '0.04em',
                 textTransform: 'uppercase',
               }}>
                 Email Address
               </label>
-              <div style={{
-                position: 'relative',
-                borderRadius: '12px',
-                border: `1px solid ${focusedField === 'email' ? 'rgba(100,181,246,0.6)' : 'rgba(255,255,255,0.1)'}`,
-                background: focusedField === 'email' ? 'rgba(100,181,246,0.05)' : 'rgba(255,255,255,0.04)',
-                transition: 'all 0.2s ease',
-                boxShadow: focusedField === 'email' ? '0 0 0 3px rgba(100,181,246,0.1)' : 'none',
-              }}>
+              <div style={inputStyle('email')}>
                 <input
                   type="email"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   onFocus={() => setFocusedField('email')}
                   onBlur={() => setFocusedField(null)}
-                  placeholder="superadmin@megatechsolutions.org"
+                  placeholder="superadmin@example.com"
                   disabled={loading}
+                  autoComplete="email"
                   style={{
                     width: '100%',
                     padding: '14px 16px',
                     background: 'transparent',
                     border: 'none',
                     outline: 'none',
-                    fontSize: '14px',
+                    fontSize: '15px',
                     color: '#ffffff',
-                    fontFamily: '"Playfair Display", serif',
-                    caretColor: '#64b5f6',
+                    fontFamily: 'Inter, sans-serif',
+                    caretColor: 'rgba(255,255,255,0.7)',
                     boxSizing: 'border-box',
                   }}
                 />
               </div>
             </div>
 
+            {/* Password */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{
                 display: 'block',
                 marginBottom: '8px',
                 fontSize: '12px',
                 fontWeight: 500,
-                color: 'rgba(255,255,255,0.6)',
-                fontFamily: '"Playfair Display", serif',
-                letterSpacing: '0.05em',
+                color: 'rgba(255,255,255,0.55)',
+                fontFamily: 'Inter, sans-serif',
+                letterSpacing: '0.04em',
                 textTransform: 'uppercase',
               }}>
                 Password
               </label>
-              <div style={{
-                position: 'relative',
-                borderRadius: '12px',
-                border: `1px solid ${focusedField === 'password' ? 'rgba(100,181,246,0.6)' : 'rgba(255,255,255,0.1)'}`,
-                background: focusedField === 'password' ? 'rgba(100,181,246,0.05)' : 'rgba(255,255,255,0.04)',
-                transition: 'all 0.2s ease',
-                boxShadow: focusedField === 'password' ? '0 0 0 3px rgba(100,181,246,0.1)' : 'none',
-              }}>
+              <div style={inputStyle('password')}>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
@@ -348,22 +298,23 @@ export default function SuperAdminLoginPage() {
                   onBlur={() => setFocusedField(null)}
                   placeholder="Enter your password"
                   disabled={loading}
+                  autoComplete="current-password"
                   style={{
                     width: '100%',
                     padding: '14px 48px 14px 16px',
                     background: 'transparent',
                     border: 'none',
                     outline: 'none',
-                    fontSize: '14px',
+                    fontSize: '15px',
                     color: '#ffffff',
-                    fontFamily: '"Playfair Display", serif',
-                    caretColor: '#64b5f6',
+                    fontFamily: 'Inter, sans-serif',
+                    caretColor: 'rgba(255,255,255,0.7)',
                     boxSizing: 'border-box',
                   }}
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setShowPassword(v => !v)}
                   disabled={loading}
                   style={{
                     position: 'absolute',
@@ -373,44 +324,23 @@ export default function SuperAdminLoginPage() {
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    fontSize: '18px',
-                    lineHeight: 1,
                     color: 'rgba(255,255,255,0.4)',
-                    padding: 0,
+                    padding: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
                   }}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                  {showPassword
+                    ? <EyeOff size={18} strokeWidth={2} />
+                    : <Eye size={18} strokeWidth={2} />
+                  }
                 </button>
               </div>
             </div>
 
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '28px',
-            }}>
-              <label style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-              }}>
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  disabled={loading}
-                  style={{ accentColor: '#64b5f6', width: '14px', height: '14px' }}
-                />
-                <span style={{
-                  fontSize: '13px',
-                  color: 'rgba(255,255,255,0.5)',
-                  fontFamily: '"Playfair Display", serif',
-                }}>
-                  Remember me
-                </span>
-              </label>
+            {/* Forgot password */}
+            <div style={{ textAlign: 'right', marginBottom: '24px', marginTop: '-12px' }}>
               <button
                 type="button"
                 onClick={handleForgotPassword}
@@ -418,10 +348,10 @@ export default function SuperAdminLoginPage() {
                 style={{
                   background: 'none',
                   border: 'none',
-                  cursor: loading ? 'not-allowed' : 'pointer',
+                  cursor: 'pointer',
                   fontSize: '13px',
-                  color: loading ? 'rgba(255,255,255,0.2)' : '#90caf9',
-                  fontFamily: '"Playfair Display", serif',
+                  color: 'rgba(255,255,255,0.4)',
+                  fontFamily: 'Inter, sans-serif',
                   padding: 0,
                 }}
               >
@@ -429,6 +359,7 @@ export default function SuperAdminLoginPage() {
               </button>
             </div>
 
+            {/* Submit */}
             <motion.button
               type="submit"
               disabled={loading}
@@ -438,114 +369,56 @@ export default function SuperAdminLoginPage() {
                 width: '100%',
                 padding: '15px',
                 borderRadius: '12px',
-                background: loading
-                  ? 'rgba(255,255,255,0.1)'
-                  : 'linear-gradient(135deg, #1565c0 0%, #1e88e5 50%, #42a5f5 100%)',
+                background: loading ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
                 border: 'none',
-                color: '#ffffff',
+                color: loading ? 'rgba(255,255,255,0.3)' : '#1F2A49',
                 fontSize: '15px',
                 fontWeight: 600,
-                fontFamily: '"Playfair Display", serif',
+                fontFamily: 'Inter, sans-serif',
                 cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.7 : 1,
-                boxShadow: loading ? 'none' : '0 4px 20px rgba(21,101,192,0.5)',
-                transition: 'all 0.2s ease',
-                letterSpacing: '-0.01em',
+                transition: 'all 0.2s',
+                minHeight: '50px',
               }}
             >
-              {loading ? 'Accessing Portal...' : 'Sign In to Super Admin'}
+              {loading ? 'Signing in...' : 'Sign In'}
             </motion.button>
           </motion.form>
 
+          {/* Footer */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-          >
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              marginBottom: '20px',
-            }}>
-              <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
-              <span style={{
-                padding: '0 12px',
-                fontSize: '11px',
-                color: 'rgba(255,255,255,0.3)',
-                fontFamily: '"Playfair Display", serif',
-                letterSpacing: '0.05em',
-              }}>
-                Super Admin Access
-              </span>
-              <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
-            </div>
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr 1fr',
-              gap: '8px',
-              marginBottom: '24px',
-            }}>
-              {[
-                { icon: '🏢', label: 'School Mgmt' },
-                { icon: '📊', label: 'Analytics' },
-                { icon: '📑', label: 'Reports' },
-                { icon: '🎫', label: 'Tickets' },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.07)',
-                    borderRadius: '10px',
-                    padding: '10px 6px',
-                    textAlign: 'center',
-                  }}
-                >
-                  <div style={{ fontSize: '18px', marginBottom: '4px' }}>{item.icon}</div>
-                  <div style={{
-                    fontSize: '9px',
-                    color: 'rgba(255,255,255,0.4)',
-                    fontFamily: '"Playfair Display", serif',
-                    lineHeight: 1.3,
-                  }}>
-                    {item.label}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{
-              borderTop: '1px solid rgba(255,255,255,0.06)',
-              paddingTop: '16px',
+            transition={{ delay: 0.35 }}
+            style={{
+              marginTop: '28px',
+              borderTop: '1px solid rgba(255,255,255,0.07)',
+              paddingTop: '20px',
               textAlign: 'center',
+            }}
+          >
+            <p style={{
+              fontSize: '11px',
+              color: 'rgba(255,255,255,0.25)',
+              fontFamily: 'Inter, sans-serif',
+              lineHeight: 1.6,
             }}>
-              <p style={{
-                fontSize: '10px',
-                color: 'rgba(255,255,255,0.25)',
-                fontFamily: '"Playfair Display", serif',
-                lineHeight: 1.6,
-              }}>
-                <span style={{ color: 'rgba(144,202,249,0.6)', fontWeight: 600 }}>Mega Tech Solutions</span>
-                {' · '}In partnership with Kogi State Ministry of Education
-              </p>
-              <p style={{
-                fontSize: '9px',
-                color: 'rgba(255,255,255,0.15)',
-                fontFamily: '"Playfair Display", serif',
-                marginTop: '4px',
-              }}>
-                © {currentYear} All rights reserved
-              </p>
-            </div>
+              <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>Mega Tech Solutions</span>
+              {' · '}Einstein's CBT App
+            </p>
+            <p style={{
+              fontSize: '10px',
+              color: 'rgba(255,255,255,0.15)',
+              fontFamily: 'Inter, sans-serif',
+              marginTop: '4px',
+            }}>
+              © {currentYear} All rights reserved
+            </p>
           </motion.div>
         </motion.div>
       </div>
 
       <style jsx global>{`
-        input::placeholder {
-          color: rgba(255,255,255,0.2) !important;
-        }
+        input::placeholder { color: rgba(255,255,255,0.2) !important; }
       `}</style>
     </>
   )

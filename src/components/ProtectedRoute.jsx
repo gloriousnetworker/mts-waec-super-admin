@@ -19,7 +19,7 @@ export default function ProtectedRoute({ children }) {
 
   if (!authChecked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#7C3AED]/10 to-[#6D28D9]/10">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-primary/10 to-brand-primary-dk/10">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -28,7 +28,7 @@ export default function ProtectedRoute({ children }) {
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-            className="w-16 h-16 border-4 border-[#7C3AED] border-t-transparent rounded-full mx-auto mb-4"
+            className="w-16 h-16 border-4 border-brand-primary border-t-transparent rounded-full mx-auto mb-4"
           />
           <p className="text-gray-600 font-playfair">Checking authentication...</p>
         </motion.div>

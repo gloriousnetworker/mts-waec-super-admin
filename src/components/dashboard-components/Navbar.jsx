@@ -1,9 +1,10 @@
 // components/dashboard-components/Navbar.jsx
 'use client';
 import { useSuperAdminAuth } from '../../context/AuthContext';
-import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import { Menu, Settings, MessageSquare, LogOut, ChevronDown, Shield } from 'lucide-react';
 import {
   navbarContainer,
   navbarInner,
@@ -14,22 +15,13 @@ import {
   navbarLogoImage,
   navbarLogoText,
   navbarLogoSubtext,
-  navbarNav,
-  navbarNavButton,
-  navbarNavButtonActive,
-  navbarNavButtonInactive,
   navbarRight,
-  navbarSearch,
-  navbarSearchIcon,
-  navbarSearchInput,
-  navbarNotification,
-  navbarNotificationBadge,
-  navbarProfile,
   navbarProfileButton,
   navbarProfileAvatar,
+  navbarProfileAvatarText,
   navbarProfileInfo,
   navbarProfileName,
-  navbarProfileId,
+  navbarProfileRole,
   navbarDropdown,
   navbarDropdownHeader,
   navbarDropdownHeaderName,
@@ -40,47 +32,28 @@ import {
   modalOverlay,
   modalContainer,
   modalTitle,
-  modalText,
+  modalSubtitle,
   modalActions,
   modalButtonSecondary,
-  modalButtonDanger
+  modalButtonDanger,
 } from '../../styles/styles';
 
-const BASE_URL = 'https://cbt-simulator-backend.vercel.app';
-
 export default function SuperAdminNavbar({ activeSection, setActiveSection, onMenuClick, onChatClick }) {
-  const { user, logout, refreshUser } = useSuperAdminAuth();
+  // Use user directly from AuthContext — no redundant /me fetch
+  const { user, logout } = useSuperAdminAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [liveUser, setLiveUser] = useState(null);
-
-  useEffect(() => {
-    const fetchMe = async () => {
-      try {
-        const res = await fetch(`${BASE_URL}/api/auth/me`, {
-          method: 'GET',
-          credentials: 'include',
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setLiveUser(data.user);
-        }
-      } catch {}
-    };
-    fetchMe();
-  }, []);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (!e.target.closest('.profile-container')) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setShowDropdown(false);
       }
     };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const displayUser = liveUser || user;
 
   const getInitials = (name) => {
     if (!name) return 'SA';
@@ -92,171 +65,140 @@ export default function SuperAdminNavbar({ activeSection, setActiveSection, onMe
     setShowLogoutConfirm(false);
   };
 
-  const navSections = [
-    { id: 'home', label: 'Dashboard', icon: '🏠' },
-    { id: 'schools', label: 'Schools', icon: '🏫' },
-    { id: 'admins', label: 'Admins', icon: '👥' },
-    { id: 'students', label: 'Students', icon: '🧑‍🎓' },
-    { id: 'reports', label: 'Reports', icon: '📊' },
-    { id: 'support', label: 'Support', icon: '🎫' },
-    { id: 'analytics', label: 'Analytics', icon: '📈' },
-  ];
-
   return (
     <>
       <nav className={navbarContainer}>
         <div className={navbarInner}>
           <div className={navbarContent}>
+            {/* Left: Hamburger + Logo */}
             <div className={navbarLeft}>
-              <button
-                onClick={onMenuClick}
-                className={navbarMenuButton}
-              >
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
+              {/* Hamburger visible on ALL screen sizes per design spec */}
+              <button onClick={onMenuClick} className={navbarMenuButton} aria-label="Toggle sidebar">
+                <Menu size={20} />
               </button>
 
               <div className={navbarLogo}>
-                <div className={navbarLogoImage}>
-                  <Image
-                    src="/logo.png"
-                    alt="Mega Tech Logo"
-                    width={40}
-                    height={40}
-                    className="object-contain"
-                  />
-                </div>
-                <div>
-                  <h1 className={navbarLogoText}>Mega Tech Solutions</h1>
-                  <p className={navbarLogoSubtext}>Kogi State Ministry of Education</p>
-                </div>
-              </div>
-            </div>
-
-            <div className={navbarNav}>
-              {navSections.map(section => (
-                <button
-                  key={section.id}
-                  onClick={() => setActiveSection(section.id)}
-                  className={`${navbarNavButton} ${
-                    activeSection === section.id
-                      ? navbarNavButtonActive
-                      : navbarNavButtonInactive
-                  }`}
-                >
-                  <span className="mr-2">{section.icon}</span>
-                  {section.label}
-                </button>
-              ))}
-            </div>
-
-            <div className={navbarRight}>
-              <div className={navbarSearch}>
-                <div className={navbarSearchIcon}>
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-                <input
-                  type="search"
-                  className={navbarSearchInput}
-                  placeholder="Search schools, admins..."
+                <Image
+                  src="/logo.png"
+                  alt="Einstein's CBT App"
+                  width={36}
+                  height={36}
+                  className={navbarLogoImage}
                 />
+                <div>
+                  <h1 className={navbarLogoText}>Einstein's CBT</h1>
+                  <p className={navbarLogoSubtext}>Super Admin Portal</p>
+                </div>
               </div>
+            </div>
 
-              <button className={navbarNotification}>
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                <span className={navbarNotificationBadge}></span>
-              </button>
+            {/* Right: Profile dropdown */}
+            <div className={navbarRight}>
+              {/* Admin role badge */}
+              <span className="hidden sm:flex badge-danger items-center gap-1 text-2xs font-semibold">
+                <Shield size={11} strokeWidth={2.5} />
+                Super Admin
+              </span>
 
-              <div className="profile-container relative">
+              <div ref={dropdownRef} className="relative">
                 <button
-                  onClick={() => setShowDropdown(!showDropdown)}
+                  onClick={() => setShowDropdown(prev => !prev)}
                   className={navbarProfileButton}
+                  aria-label="Profile menu"
                 >
                   <div className={navbarProfileAvatar}>
-                    <div className="w-9 h-9 rounded-full bg-[#7C3AED] flex items-center justify-center text-white text-[14px] leading-[100%] font-[600]">
-                      {getInitials(displayUser?.name)}
-                    </div>
+                    <span className={navbarProfileAvatarText}>
+                      {getInitials(user?.name)}
+                    </span>
                   </div>
                   <div className={navbarProfileInfo}>
-                    <p className={navbarProfileName}>{displayUser?.name || 'Super Admin'}</p>
-                    <p className={navbarProfileId}>Super Administrator</p>
+                    <p className={navbarProfileName}>{user?.name || 'Super Admin'}</p>
+                    <p className={navbarProfileRole}>{user?.email || ''}</p>
                   </div>
+                  <ChevronDown
+                    size={14}
+                    className={`text-content-muted transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`}
+                  />
                 </button>
 
-                {showDropdown && (
-                  <div className={navbarDropdown}>
-                    <div className={navbarDropdownHeader}>
-                      <p className={navbarDropdownHeaderName}>{displayUser?.name || 'Super Admin'}</p>
-                      <p className={navbarDropdownHeaderEmail}>{displayUser?.email || ''}</p>
-                    </div>
-                    <div className={navbarDropdownMenu}>
-                      <button
-                        onClick={() => {
-                          setActiveSection('settings');
-                          setShowDropdown(false);
-                        }}
-                        className={navbarDropdownItem}
-                      >
-                        Profile Settings
-                      </button>
-                      <button
-                        onClick={() => {
-                          onChatClick();
-                          setShowDropdown(false);
-                        }}
-                        className={navbarDropdownItem}
-                      >
-                        Support Chat
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowLogoutConfirm(true);
-                          setShowDropdown(false);
-                        }}
-                        className={navbarDropdownItemDanger}
-                      >
-                        Logout
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <AnimatePresence>
+                  {showDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                      transition={{ duration: 0.15 }}
+                      className={navbarDropdown}
+                    >
+                      <div className={navbarDropdownHeader}>
+                        <p className={navbarDropdownHeaderName}>{user?.name || 'Super Admin'}</p>
+                        <p className={navbarDropdownHeaderEmail}>{user?.email || ''}</p>
+                      </div>
+                      <div className={navbarDropdownMenu}>
+                        <button
+                          onClick={() => { setActiveSection('settings'); setShowDropdown(false); }}
+                          className={navbarDropdownItem}
+                        >
+                          <Settings size={15} strokeWidth={2} />
+                          Profile Settings
+                        </button>
+                        <button
+                          onClick={() => { onChatClick?.(); setShowDropdown(false); }}
+                          className={navbarDropdownItem}
+                        >
+                          <MessageSquare size={15} strokeWidth={2} />
+                          Support Chat
+                        </button>
+                        <div className="my-1 border-t border-border" />
+                        <button
+                          onClick={() => { setShowLogoutConfirm(true); setShowDropdown(false); }}
+                          className={navbarDropdownItemDanger}
+                        >
+                          <LogOut size={15} strokeWidth={2} />
+                          Sign Out
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </div>
         </div>
       </nav>
 
-      {showLogoutConfirm && (
-        <div className={modalOverlay}>
+      {/* Logout confirmation modal */}
+      <AnimatePresence>
+        {showLogoutConfirm && (
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className={modalContainer}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={modalOverlay}
+            onClick={() => setShowLogoutConfirm(false)}
           >
-            <h3 className={modalTitle}>Confirm Logout</h3>
-            <p className={modalText}>Are you sure you want to logout?</p>
-            <div className={modalActions}>
-              <button
-                onClick={() => setShowLogoutConfirm(false)}
-                className={modalButtonSecondary}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleLogout}
-                className={modalButtonDanger}
-              >
-                Logout
-              </button>
-            </div>
+            <motion.div
+              initial={{ scale: 0.92, y: 16 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.92, y: 16 }}
+              transition={{ duration: 0.2 }}
+              className={modalContainer}
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 className={modalTitle}>Sign Out</h3>
+              <p className={modalSubtitle}>Are you sure you want to sign out of the Super Admin Portal?</p>
+              <div className={modalActions}>
+                <button onClick={() => setShowLogoutConfirm(false)} className={modalButtonSecondary}>
+                  Cancel
+                </button>
+                <button onClick={handleLogout} className={modalButtonDanger}>
+                  Sign Out
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </>
   );
 }

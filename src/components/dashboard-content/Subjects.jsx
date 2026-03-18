@@ -247,7 +247,7 @@ export default function Subjects() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+      <div className="card p-6 mb-6">
         <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
           <div className="flex-1 w-full lg:w-auto">
             <input
@@ -255,14 +255,14 @@ export default function Subjects() {
               placeholder="Search subjects by name or code..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+              className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-brand-primary text-[13px]"
             />
           </div>
           <div className="flex flex-wrap gap-3 w-full lg:w-auto">
             <select
               value={filterExamType}
               onChange={(e) => setFilterExamType(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+              className="px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-brand-primary text-[13px]"
             >
               <option value="all">All Exam Types</option>
               <option value="WAEC">WAEC</option>
@@ -271,7 +271,7 @@ export default function Subjects() {
             </select>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-6 py-2.5 bg-[#7C3AED] text-white rounded-lg hover:bg-[#6D28D9] transition-colors font-[600] text-[13px] font-playfair whitespace-nowrap"
+              className="px-6 py-2.5 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dk transition-colors font-[600] text-[13px] whitespace-nowrap"
             >
               + Create Subject
             </button>
@@ -280,67 +280,67 @@ export default function Subjects() {
       </div>
 
       {loading ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <div className="w-12 h-12 border-4 border-[#7C3AED] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[14px] text-[#626060] font-playfair">Loading subjects...</p>
+        <div className="card p-12 text-center">
+          <div className="spinner mx-auto mb-3" />
+          <p className="text-[14px] text-content-secondary">Loading subjects...</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-surface-muted border-b border-border">
                 <tr>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Subject Name</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Code</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Exam Type</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Duration</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Questions</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Status</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Created</th>
-                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-[#626060] uppercase tracking-wider font-playfair">Actions</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Subject Name</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Code</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Exam Type</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Duration</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Questions</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Created</th>
+                  <th className="px-6 py-4 text-left text-[11px] leading-[100%] font-[600] text-content-secondary uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-border">
                 {filteredSubjects.map((subject) => (
                   <motion.tr
                     key={subject.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="hover:bg-gray-50 transition-colors"
+                    className="hover:bg-surface-subtle transition-colors"
                   >
                     <td className="px-6 py-4">
                       <div>
-                        <p className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair mb-1">
+                        <p className="text-[14px] leading-[100%] font-[600] text-content-primary mb-1">
                           {subject.name}
                         </p>
                         {subject.description && (
-                          <p className="text-[11px] leading-[100%] font-[400] text-[#626060] font-playfair">
+                          <p className="text-[11px] leading-[100%] font-[400] text-content-secondary">
                             {subject.description}
                           </p>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">{subject.code}</p>
+                      <p className="text-[13px] leading-[100%] font-[500] text-content-primary">{subject.code}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">{subject.examType || 'N/A'}</p>
+                      <p className="text-[13px] leading-[100%] font-[500] text-content-primary">{subject.examType || 'N/A'}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">{subject.duration || 120} mins</p>
+                      <p className="text-[13px] leading-[100%] font-[500] text-content-primary">{subject.duration || 120} mins</p>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">{subject.questionCount || 0}</p>
+                      <p className="text-[13px] leading-[100%] font-[500] text-content-primary">{subject.questionCount || 0}</p>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${
                         subject.status === 'active' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'
-                      } font-playfair`}>
+                      }`}>
                         {subject.status || 'active'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">
+                      <p className="text-[12px] leading-[100%] font-[400] text-content-secondary">
                         {formatDate(subject.createdAt)}
                       </p>
                     </td>
@@ -348,7 +348,7 @@ export default function Subjects() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleEditClick(subject)}
-                          className="p-2 text-[#7C3AED] hover:bg-[#F5F3FF] rounded-md transition-colors"
+                          className="p-2 text-brand-primary hover:bg-brand-primary-lt rounded-md transition-colors"
                         >
                           ✏️
                         </button>
@@ -367,7 +367,7 @@ export default function Subjects() {
           </div>
           {filteredSubjects.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-[14px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">No subjects found</p>
+              <p className="text-[14px] leading-[100%] font-[400] text-content-muted">No subjects found</p>
             </div>
           )}
         </div>
@@ -393,49 +393,49 @@ export default function Subjects() {
               <div className="space-y-4 mb-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Subject Name *</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Subject Name *</label>
                     <input
                       type="text"
                       name="name"
                       value={formData.name}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                       placeholder="e.g., Mathematics"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Subject Code *</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Subject Code *</label>
                     <input
                       type="text"
                       name="code"
                       value={formData.code}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                       placeholder="e.g., MATH101"
                     />
                   </div>
                 </div>
                 
                 <div>
-                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Description</label>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Description</label>
                   <textarea
                     name="description"
                     value={formData.description}
                     onChange={handleInputChange}
                     rows="2"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                     placeholder="Brief description of the subject"
                   />
                 </div>
                 
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Exam Type</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Exam Type</label>
                     <select
                       name="examType"
                       value={formData.examType}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                     >
                       <option value="WAEC">WAEC</option>
                       <option value="NECO">NECO</option>
@@ -443,25 +443,25 @@ export default function Subjects() {
                     </select>
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Duration (mins)</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Duration (mins)</label>
                     <input
                       type="number"
                       name="duration"
                       value={formData.duration}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                       min="30"
                       max="240"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Questions</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Questions</label>
                     <input
                       type="number"
                       name="questionCount"
                       value={formData.questionCount}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                       min="10"
                       max="200"
                     />
@@ -478,7 +478,7 @@ export default function Subjects() {
                 </button>
                 <button
                   onClick={handleCreateSubject}
-                  className="px-4 py-2 bg-[#7C3AED] text-white rounded-md hover:bg-[#6D28D9] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  className="px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk transition-colors text-[13px] leading-[100%] font-[600]"
                 >
                   Create Subject
                 </button>
@@ -506,46 +506,46 @@ export default function Subjects() {
               <div className="space-y-4 mb-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Subject Name *</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Subject Name *</label>
                     <input
                       type="text"
                       name="name"
                       value={formData.name}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Subject Code *</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Subject Code *</label>
                     <input
                       type="text"
                       name="code"
                       value={formData.code}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                     />
                   </div>
                 </div>
                 
                 <div>
-                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Description</label>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Description</label>
                   <textarea
                     name="description"
                     value={formData.description}
                     onChange={handleInputChange}
                     rows="2"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                   />
                 </div>
                 
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Exam Type</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Exam Type</label>
                     <select
                       name="examType"
                       value={formData.examType}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                     >
                       <option value="WAEC">WAEC</option>
                       <option value="NECO">NECO</option>
@@ -553,23 +553,23 @@ export default function Subjects() {
                     </select>
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Duration (mins)</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Duration (mins)</label>
                     <input
                       type="number"
                       name="duration"
                       value={formData.duration}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Questions</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Questions</label>
                     <input
                       type="number"
                       name="questionCount"
                       value={formData.questionCount}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#7C3AED] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                     />
                   </div>
                 </div>
@@ -584,7 +584,7 @@ export default function Subjects() {
                 </button>
                 <button
                   onClick={handleUpdateSubject}
-                  className="px-4 py-2 bg-[#7C3AED] text-white rounded-md hover:bg-[#6D28D9] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  className="px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk transition-colors text-[13px] leading-[100%] font-[600]"
                 >
                   Update Subject
                 </button>
