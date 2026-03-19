@@ -94,8 +94,7 @@ export default function SuperAdminLayout({ children }) {
         <title>Mega Tech Solutions - Super Admin</title>
         <script src="/sw-register.js" defer></script>
       </head>
-      {/* min-h-screen removed — body is locked via position:fixed in globals.css */}
-      <body className="bg-surface-muted font-inter antialiased">
+      <body className="bg-surface-muted min-h-screen font-inter antialiased">
         <SuperAdminAuthProvider>
           <Toaster 
             position="top-center" 
