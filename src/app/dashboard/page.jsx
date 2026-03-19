@@ -20,9 +20,9 @@ import SuperAdminChat from '../../components/dashboard-content/SuperAdminChat';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import toast from 'react-hot-toast';
 
-const dashboardContainer = "min-h-screen bg-surface-muted";
-const dashboardMain = "flex pt-16 lg:pt-0";
-const dashboardContent = "flex-1 min-h-screen overflow-y-auto";
+const dashboardContainer = "fixed inset-0 flex flex-col bg-surface-muted overflow-hidden";
+const dashboardMain = "flex flex-1 overflow-hidden pt-16 lg:pt-0";
+const dashboardContent = "flex-1 overflow-y-auto overscroll-y-none";
 const dashboardInner = "p-4 sm:p-6 max-w-7xl mx-auto";
 const dashboardLoading = "fixed inset-0 bg-white flex items-center justify-center z-50";
 const dashboardLoadingInner = "text-center";
