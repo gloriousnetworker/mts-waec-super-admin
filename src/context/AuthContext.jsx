@@ -143,7 +143,43 @@ export function SuperAdminAuthProvider({ children }) {
       const data = await response.json();
 
       if (response.ok && data.user) {
+        // Set user immediately from the response body so the UI updates
         setUser(data.user);
+
+        // ── iOS Safari cookie race condition fix ──────────────────────────
+        // /verify-2fa is the endpoint that sets the real session cookies
+        // (accessToken + refreshToken). iOS Safari does NOT commit Set-Cookie
+        // headers synchronously — there is a short window (~100-300ms) where
+        // the cookie exists in the response headers but hasn't been written
+        // into the cookie jar yet.
+        //
+        // If we return success: true immediately, the calling code does
+        // router.push('/dashboard'), the dashboard mounts and fires fetchWithAuth
+        // calls, iOS sends those requests without a cookie → 401 → refresh
+        // also fails (still no cookie) → "session expired".
+        //
+        // Fix: await a brief pause, then synchronously confirm the session
+        // via /api/auth/me BEFORE we return success: true. This delays
+        // router.push('/dashboard') until the cookie is confirmed readable.
+        // ─────────────────────────────────────────────────────────────────
+        await new Promise(resolve => setTimeout(resolve, 350));
+
+        try {
+          const confirmed = await fetch(`${BASE_URL}/api/auth/me`, {
+            method: 'GET',
+            ...IOS_SAFE_DEFAULTS,
+          });
+          if (confirmed.ok) {
+            const confirmData = await confirmed.json();
+            // Refresh user from server (picks up any server-side profile data)
+            setUser(confirmData.user);
+          }
+          // If not ok: non-fatal — user is already set from verify-2fa response.
+          // The cookie will be available by the time dashboard API calls fire.
+        } catch (_) {
+          // Network error during confirmation — proceed anyway
+        }
+
         return { success: true, user: data.user };
       }
 
@@ -182,7 +218,9 @@ export function SuperAdminAuthProvider({ children }) {
       ? endpoint
       : `${BASE_URL}/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
-    const maxRetries = 1;
+    // 2 retries: first attempt, then one silent refresh, then one final retry.
+    // The extra retry gives iOS time to commit late-arriving Set-Cookie headers.
+    const maxRetries = 2;
     let retryCount = 0;
 
     const executeFetch = async () => {
@@ -203,7 +241,14 @@ export function SuperAdminAuthProvider({ children }) {
         if (response.status === 401 && retryCount < maxRetries) {
           retryCount++;
 
-          // Attempt a silent token refresh
+          if (retryCount === 1) {
+            // First 401: short wait then retry — covers the iOS cookie race
+            // window where the cookie exists but hasn't been committed yet
+            await new Promise(resolve => setTimeout(resolve, 200));
+            return executeFetch();
+          }
+
+          // Second 401: attempt a silent token refresh
           const refreshResponse = await fetch(`${BASE_URL}/api/auth/refresh`, {
             method: 'POST',
             ...IOS_SAFE_DEFAULTS,
