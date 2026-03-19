@@ -5,27 +5,43 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
 const SuperAdminAuthContext = createContext();
-const BASE_URL = 'https://cbt-simulator-backend.vercel.app';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// iOS Safari ITP fix — every fetch that sends cookies must use these options:
-//
-//   mode: 'cors'       — iOS Safari requires this explicitly for cross-origin
-//                        credentialed requests; omitting it silently blocks cookies
-//   credentials: 'include' — send & receive httpOnly cookies cross-origin
-//   cache: 'no-store'  — iOS Safari aggressively caches auth responses;
-//                        without this a 200 can be served for a 401 endpoint
-//   Accept header      — helps iOS classify the request as XHR, not navigation
-// ─────────────────────────────────────────────────────────────────────────────
-const IOS_SAFE_DEFAULTS = {
-  mode: 'cors',
-  credentials: 'include',
-  cache: 'no-store',
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  },
-};
+// All API calls go through the same-origin proxy so iOS Safari (ITP) never
+// blocks cross-origin cookies. The proxy lives at /api/proxy and forwards
+// requests server-side to the real backend at:
+//   https://cbt-simulator-backend.vercel.app
+const PROXY = '/api/proxy';
+
+// localStorage keys for user cache (offline / cold-start support)
+const CACHE_KEY = 'cbt_superadmin_cache';
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+function loadCachedUser() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const { user, ts } = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
+    return user;
+  } catch {
+    return null;
+  }
+}
+
+function saveCachedUser(user) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ user, ts: Date.now() }));
+  } catch {}
+}
+
+function clearAuthCache() {
+  try {
+    localStorage.removeItem(CACHE_KEY);
+  } catch {}
+}
 
 export function SuperAdminAuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -33,48 +49,73 @@ export function SuperAdminAuthProvider({ children }) {
   const [authChecked, setAuthChecked] = useState(false);
   const router = useRouter();
 
-  const checkAuth = useCallback(async () => {
+  // soft = true  → background refresh: never clears user on failure
+  //                 (used when we already have a cached session)
+  // soft = false → hard check: clears user + cache on 401
+  //                 (used on cold start with no cache)
+  const checkAuth = useCallback(async (soft = false) => {
     try {
-      const response = await fetch(`${BASE_URL}/api/auth/me`, {
+      const response = await fetch(`${PROXY}/auth/me`, {
         method: 'GET',
-        ...IOS_SAFE_DEFAULTS,
+        credentials: 'include',
+        cache: 'no-store',
       });
 
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
+        saveCachedUser(data.user);
         return true;
       } else {
-        setUser(null);
+        if (!soft) {
+          setUser(null);
+          clearAuthCache();
+        }
         return false;
       }
     } catch (error) {
+      // Network error — never clear an existing session
       console.error('Auth check error:', error);
-      setUser(null);
       return false;
     }
   }, []);
 
   useEffect(() => {
     const initAuth = async () => {
-      await checkAuth();
+      const cached = loadCachedUser();
+
+      if (cached) {
+        // Trust the cache immediately — prevents login flash on mobile PWA
+        setUser(cached);
+        setAuthChecked(true);
+        // Soft refresh in background — updates cache if server confirms session
+        checkAuth(true);
+        return;
+      }
+
+      // No cache — do a hard server check
+      await checkAuth(false);
       setAuthChecked(true);
     };
+
     initAuth();
   }, [checkAuth]);
 
   const login = useCallback(async (email, password) => {
     setLoading(true);
     try {
-      const response = await fetch(`${BASE_URL}/api/auth/login`, {
+      const response = await fetch(`${PROXY}/auth/login`, {
         method: 'POST',
-        ...IOS_SAFE_DEFAULTS,
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        cache: 'no-store',
         body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
+        // 2FA required — no cookies set yet, just a tempToken
         if (data.requiresTwoFactor || data.message === '2FA required') {
           return {
             requiresTwoFactor: true,
@@ -82,28 +123,12 @@ export function SuperAdminAuthProvider({ children }) {
             tempToken: data.tempToken,
             message: data.message,
           };
-        } else if (data.user) {
-          // Set user immediately from login response
+        }
+
+        // Direct login success — cookies set by the proxy on same origin
+        if (data.user) {
           setUser(data.user);
-
-          // iOS Safari ITP: the Set-Cookie from login may not be
-          // readable by the next request immediately. Silently re-confirm
-          // the session once after a short tick so the cookie is committed.
-          setTimeout(async () => {
-            try {
-              const confirmed = await fetch(`${BASE_URL}/api/auth/me`, {
-                method: 'GET',
-                ...IOS_SAFE_DEFAULTS,
-              });
-              if (confirmed.ok) {
-                const confirmData = await confirmed.json();
-                setUser(confirmData.user);
-              }
-            } catch (_) {
-              // non-fatal — user is already set from login response
-            }
-          }, 250);
-
+          saveCachedUser(data.user);
           return { success: true, user: data.user };
         }
       }
@@ -114,17 +139,9 @@ export function SuperAdminAuthProvider({ children }) {
       };
     } catch (error) {
       console.error('Login error:', error);
-
-      // Detect iOS CORS / network errors and give a clearer message
-      const isNetworkError = error?.message?.toLowerCase().includes('network') ||
-        error?.message?.toLowerCase().includes('failed to fetch') ||
-        error?.message?.toLowerCase().includes('cors');
-
       return {
         success: false,
-        message: isNetworkError
-          ? 'Connection failed. Check your internet and try again. (If on iOS Safari, ensure "Prevent Cross-Site Tracking" allows this site.)'
-          : 'Something went wrong. Please try again.',
+        message: 'Network error. Please check your connection and try again.',
       };
     } finally {
       setLoading(false);
@@ -134,52 +151,21 @@ export function SuperAdminAuthProvider({ children }) {
   const verifyTwoFactor = useCallback(async (userId, token, tempToken) => {
     setLoading(true);
     try {
-      const response = await fetch(`${BASE_URL}/api/auth/verify-2fa`, {
+      const response = await fetch(`${PROXY}/auth/verify-2fa`, {
         method: 'POST',
-        ...IOS_SAFE_DEFAULTS,
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        cache: 'no-store',
         body: JSON.stringify({ userId, token, tempToken }),
       });
 
       const data = await response.json();
 
       if (response.ok && data.user) {
-        // Set user immediately from the response body so the UI updates
+        // The proxy has forwarded the backend's Set-Cookie to the browser
+        // as a same-origin cookie — no iOS ITP delay, no race condition.
         setUser(data.user);
-
-        // ── iOS Safari cookie race condition fix ──────────────────────────
-        // /verify-2fa is the endpoint that sets the real session cookies
-        // (accessToken + refreshToken). iOS Safari does NOT commit Set-Cookie
-        // headers synchronously — there is a short window (~100-300ms) where
-        // the cookie exists in the response headers but hasn't been written
-        // into the cookie jar yet.
-        //
-        // If we return success: true immediately, the calling code does
-        // router.push('/dashboard'), the dashboard mounts and fires fetchWithAuth
-        // calls, iOS sends those requests without a cookie → 401 → refresh
-        // also fails (still no cookie) → "session expired".
-        //
-        // Fix: await a brief pause, then synchronously confirm the session
-        // via /api/auth/me BEFORE we return success: true. This delays
-        // router.push('/dashboard') until the cookie is confirmed readable.
-        // ─────────────────────────────────────────────────────────────────
-        await new Promise(resolve => setTimeout(resolve, 350));
-
-        try {
-          const confirmed = await fetch(`${BASE_URL}/api/auth/me`, {
-            method: 'GET',
-            ...IOS_SAFE_DEFAULTS,
-          });
-          if (confirmed.ok) {
-            const confirmData = await confirmed.json();
-            // Refresh user from server (picks up any server-side profile data)
-            setUser(confirmData.user);
-          }
-          // If not ok: non-fatal — user is already set from verify-2fa response.
-          // The cookie will be available by the time dashboard API calls fire.
-        } catch (_) {
-          // Network error during confirmation — proceed anyway
-        }
-
+        saveCachedUser(data.user);
         return { success: true, user: data.user };
       }
 
@@ -200,14 +186,16 @@ export function SuperAdminAuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     try {
-      await fetch(`${BASE_URL}/api/auth/logout`, {
+      await fetch(`${PROXY}/auth/logout`, {
         method: 'POST',
-        ...IOS_SAFE_DEFAULTS,
+        credentials: 'include',
+        cache: 'no-store',
       });
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
       setUser(null);
+      clearAuthCache();
       toast.success('Logged out successfully');
       router.push('/login');
     }
@@ -216,24 +204,19 @@ export function SuperAdminAuthProvider({ children }) {
   const fetchWithAuth = useCallback(async (endpoint, options = {}) => {
     const url = endpoint.startsWith('http')
       ? endpoint
-      : `${BASE_URL}/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+      : `${PROXY}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
-    // 2 retries: first attempt, then one silent refresh, then one final retry.
-    // The extra retry gives iOS time to commit late-arriving Set-Cookie headers.
-    const maxRetries = 2;
+    const maxRetries = 1;
     let retryCount = 0;
 
     const executeFetch = async () => {
       try {
         const response = await fetch(url, {
           ...options,
-          // iOS-safe defaults — merge with caller's options but keep credentials & mode
-          mode: 'cors',
           credentials: 'include',
           cache: options.cache ?? 'no-store',
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json',
             ...(options.headers || {}),
           },
         });
@@ -241,17 +224,11 @@ export function SuperAdminAuthProvider({ children }) {
         if (response.status === 401 && retryCount < maxRetries) {
           retryCount++;
 
-          if (retryCount === 1) {
-            // First 401: short wait then retry — covers the iOS cookie race
-            // window where the cookie exists but hasn't been committed yet
-            await new Promise(resolve => setTimeout(resolve, 200));
-            return executeFetch();
-          }
-
-          // Second 401: attempt a silent token refresh
-          const refreshResponse = await fetch(`${BASE_URL}/api/auth/refresh`, {
+          // Attempt a silent token refresh via the proxy
+          const refreshResponse = await fetch(`${PROXY}/auth/refresh`, {
             method: 'POST',
-            ...IOS_SAFE_DEFAULTS,
+            credentials: 'include',
+            cache: 'no-store',
           });
 
           if (refreshResponse.ok) {
@@ -263,6 +240,7 @@ export function SuperAdminAuthProvider({ children }) {
 
           // Refresh failed — clear session and redirect
           setUser(null);
+          clearAuthCache();
           router.push('/login');
           toast.error('Session expired. Please login again.');
           return null;
