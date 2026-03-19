@@ -72,7 +72,10 @@ export default function SuperAdminLayout({ children }) {
     <html lang="en">
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+        {/* viewport-fit=cover for notch/island devices
+            interactive-widget=resizes-visual keeps Android keyboard from resizing layout
+            maximum-scale=1, user-scalable=no prevents pinch-zoom (native app feel) */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-visual" />
         <meta name="theme-color" content="#1F2A49" />
         <meta name="description" content="Einstein's CBT App — Super Admin Portal by Mega Tech Solutions" />
         <link rel="manifest" href="/manifest.json" />
@@ -91,7 +94,8 @@ export default function SuperAdminLayout({ children }) {
         <title>Mega Tech Solutions - Super Admin</title>
         <script src="/sw-register.js" defer></script>
       </head>
-      <body className="bg-surface-muted min-h-screen font-inter antialiased">
+      {/* min-h-screen removed — body is locked via position:fixed in globals.css */}
+      <body className="bg-surface-muted font-inter antialiased">
         <SuperAdminAuthProvider>
           <Toaster 
             position="top-center" 

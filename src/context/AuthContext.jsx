@@ -7,6 +7,26 @@ import toast from 'react-hot-toast';
 const SuperAdminAuthContext = createContext();
 const BASE_URL = 'https://cbt-simulator-backend.vercel.app';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// iOS Safari ITP fix — every fetch that sends cookies must use these options:
+//
+//   mode: 'cors'       — iOS Safari requires this explicitly for cross-origin
+//                        credentialed requests; omitting it silently blocks cookies
+//   credentials: 'include' — send & receive httpOnly cookies cross-origin
+//   cache: 'no-store'  — iOS Safari aggressively caches auth responses;
+//                        without this a 200 can be served for a 401 endpoint
+//   Accept header      — helps iOS classify the request as XHR, not navigation
+// ─────────────────────────────────────────────────────────────────────────────
+const IOS_SAFE_DEFAULTS = {
+  mode: 'cors',
+  credentials: 'include',
+  cache: 'no-store',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+};
+
 export function SuperAdminAuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -17,8 +37,7 @@ export function SuperAdminAuthProvider({ children }) {
     try {
       const response = await fetch(`${BASE_URL}/api/auth/me`, {
         method: 'GET',
-        credentials: 'include',
-        cache: 'no-store'
+        ...IOS_SAFE_DEFAULTS,
       });
 
       if (response.ok) {
@@ -41,7 +60,6 @@ export function SuperAdminAuthProvider({ children }) {
       await checkAuth();
       setAuthChecked(true);
     };
-    
     initAuth();
   }, [checkAuth]);
 
@@ -50,8 +68,7 @@ export function SuperAdminAuthProvider({ children }) {
     try {
       const response = await fetch(`${BASE_URL}/api/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        ...IOS_SAFE_DEFAULTS,
         body: JSON.stringify({ email, password }),
       });
 
@@ -63,26 +80,51 @@ export function SuperAdminAuthProvider({ children }) {
             requiresTwoFactor: true,
             userId: data.userId,
             tempToken: data.tempToken,
-            message: data.message
+            message: data.message,
           };
         } else if (data.user) {
+          // Set user immediately from login response
           setUser(data.user);
-          return {
-            success: true,
-            user: data.user
-          };
+
+          // iOS Safari ITP: the Set-Cookie from login may not be
+          // readable by the next request immediately. Silently re-confirm
+          // the session once after a short tick so the cookie is committed.
+          setTimeout(async () => {
+            try {
+              const confirmed = await fetch(`${BASE_URL}/api/auth/me`, {
+                method: 'GET',
+                ...IOS_SAFE_DEFAULTS,
+              });
+              if (confirmed.ok) {
+                const confirmData = await confirmed.json();
+                setUser(confirmData.user);
+              }
+            } catch (_) {
+              // non-fatal — user is already set from login response
+            }
+          }, 250);
+
+          return { success: true, user: data.user };
         }
       }
-      
-      return { 
-        success: false, 
-        message: data.message || 'Invalid credentials' 
+
+      return {
+        success: false,
+        message: data.message || 'Invalid credentials',
       };
     } catch (error) {
       console.error('Login error:', error);
-      return { 
-        success: false, 
-        message: 'Network error. Please try again.' 
+
+      // Detect iOS CORS / network errors and give a clearer message
+      const isNetworkError = error?.message?.toLowerCase().includes('network') ||
+        error?.message?.toLowerCase().includes('failed to fetch') ||
+        error?.message?.toLowerCase().includes('cors');
+
+      return {
+        success: false,
+        message: isNetworkError
+          ? 'Connection failed. Check your internet and try again. (If on iOS Safari, ensure "Prevent Cross-Site Tracking" allows this site.)'
+          : 'Something went wrong. Please try again.',
       };
     } finally {
       setLoading(false);
@@ -94,8 +136,7 @@ export function SuperAdminAuthProvider({ children }) {
     try {
       const response = await fetch(`${BASE_URL}/api/auth/verify-2fa`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        ...IOS_SAFE_DEFAULTS,
         body: JSON.stringify({ userId, token, tempToken }),
       });
 
@@ -103,21 +144,18 @@ export function SuperAdminAuthProvider({ children }) {
 
       if (response.ok && data.user) {
         setUser(data.user);
-        return {
-          success: true,
-          user: data.user
-        };
+        return { success: true, user: data.user };
       }
-      
-      return { 
-        success: false, 
-        message: data.message || 'Invalid verification code' 
+
+      return {
+        success: false,
+        message: data.message || 'Invalid verification code',
       };
     } catch (error) {
       console.error('2FA verification error:', error);
-      return { 
-        success: false, 
-        message: 'Network error. Please try again.' 
+      return {
+        success: false,
+        message: 'Network error. Please try again.',
       };
     } finally {
       setLoading(false);
@@ -128,7 +166,7 @@ export function SuperAdminAuthProvider({ children }) {
     try {
       await fetch(`${BASE_URL}/api/auth/logout`, {
         method: 'POST',
-        credentials: 'include',
+        ...IOS_SAFE_DEFAULTS,
       });
     } catch (error) {
       console.error('Logout error:', error);
@@ -140,8 +178,8 @@ export function SuperAdminAuthProvider({ children }) {
   }, [router]);
 
   const fetchWithAuth = useCallback(async (endpoint, options = {}) => {
-    const url = endpoint.startsWith('http') 
-      ? endpoint 
+    const url = endpoint.startsWith('http')
+      ? endpoint
       : `${BASE_URL}/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
     const maxRetries = 1;
@@ -151,19 +189,24 @@ export function SuperAdminAuthProvider({ children }) {
       try {
         const response = await fetch(url, {
           ...options,
+          // iOS-safe defaults — merge with caller's options but keep credentials & mode
+          mode: 'cors',
           credentials: 'include',
+          cache: options.cache ?? 'no-store',
           headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
             ...(options.headers || {}),
           },
         });
 
         if (response.status === 401 && retryCount < maxRetries) {
           retryCount++;
-          
+
+          // Attempt a silent token refresh
           const refreshResponse = await fetch(`${BASE_URL}/api/auth/refresh`, {
             method: 'POST',
-            credentials: 'include',
+            ...IOS_SAFE_DEFAULTS,
           });
 
           if (refreshResponse.ok) {
@@ -172,7 +215,8 @@ export function SuperAdminAuthProvider({ children }) {
               return executeFetch();
             }
           }
-          
+
+          // Refresh failed — clear session and redirect
           setUser(null);
           router.push('/login');
           toast.error('Session expired. Please login again.');
@@ -221,4 +265,4 @@ export const useSuperAdminAuth = () => {
     throw new Error('useSuperAdminAuth must be used within a SuperAdminAuthProvider');
   }
   return context;
-}
+};

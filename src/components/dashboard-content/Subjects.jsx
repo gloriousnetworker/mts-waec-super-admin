@@ -21,6 +21,17 @@ import {
   superAdminStatLabel
 } from '../../styles/styles';
 
+const examTypes = ['WAEC', 'NECO', 'JAMB', 'GCE', 'Internal'];
+
+const EMPTY_FORM = {
+  name: '',
+  code: '',
+  description: '',
+  examType: 'WAEC',
+  duration: 0,
+  questionCount: 0,
+};
+
 export default function Subjects() {
   const { fetchWithAuth } = useSuperAdminAuth();
   const [subjects, setSubjects] = useState([]);
@@ -31,14 +42,7 @@ export default function Subjects() {
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterExamType, setFilterExamType] = useState('all');
-  const [formData, setFormData] = useState({
-    name: '',
-    code: '',
-    description: '',
-    examType: 'WAEC',
-    duration: 120,
-    questionCount: 50
-  });
+  const [formData, setFormData] = useState(EMPTY_FORM);
 
   useEffect(() => {
     fetchSubjects();
@@ -88,14 +92,7 @@ export default function Subjects() {
       if (response.ok) {
         toast.success('Subject created successfully!', { id: toastId });
         setShowCreateModal(false);
-        setFormData({
-          name: '',
-          code: '',
-          description: '',
-          examType: 'WAEC',
-          duration: 120,
-          questionCount: 50
-        });
+        setFormData(EMPTY_FORM);
         fetchSubjects();
       } else {
         toast.error(data.message || 'Failed to create subject', { id: toastId });
@@ -128,14 +125,7 @@ export default function Subjects() {
         toast.success('Subject updated successfully!', { id: toastId });
         setShowEditModal(false);
         setSelectedSubject(null);
-        setFormData({
-          name: '',
-          code: '',
-          description: '',
-          examType: 'WAEC',
-          duration: 120,
-          questionCount: 50
-        });
+        setFormData(EMPTY_FORM);
         fetchSubjects();
       } else {
         toast.error(data.message || 'Failed to update subject', { id: toastId });
@@ -176,8 +166,8 @@ export default function Subjects() {
       code: subject.code || '',
       description: subject.description || '',
       examType: subject.examType || 'WAEC',
-      duration: subject.duration || 120,
-      questionCount: subject.questionCount || 0
+      duration: subject.duration ?? 0,
+      questionCount: subject.questionCount ?? 0,
     });
     setShowEditModal(true);
   };
@@ -265,9 +255,7 @@ export default function Subjects() {
               className="px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-brand-primary text-[13px]"
             >
               <option value="all">All Exam Types</option>
-              <option value="WAEC">WAEC</option>
-              <option value="NECO">NECO</option>
-              <option value="JAMB">JAMB</option>
+              {examTypes.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
             <button
               onClick={() => setShowCreateModal(true)}
@@ -327,7 +315,7 @@ export default function Subjects() {
                       <p className="text-[13px] leading-[100%] font-[500] text-content-primary">{subject.examType || 'N/A'}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-[13px] leading-[100%] font-[500] text-content-primary">{subject.duration || 120} mins</p>
+                      <p className="text-[13px] leading-[100%] font-[500] text-content-primary">{subject.duration ?? 0} mins</p>
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-[13px] leading-[100%] font-[500] text-content-primary">{subject.questionCount || 0}</p>
@@ -437,9 +425,7 @@ export default function Subjects() {
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                     >
-                      <option value="WAEC">WAEC</option>
-                      <option value="NECO">NECO</option>
-                      <option value="JAMB">JAMB</option>
+                      {examTypes.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                   <div>
@@ -450,7 +436,7 @@ export default function Subjects() {
                       value={formData.duration}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
-                      min="30"
+                      min="0"
                       max="240"
                     />
                   </div>
@@ -462,8 +448,8 @@ export default function Subjects() {
                       value={formData.questionCount}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
-                      min="10"
-                      max="200"
+                      min="0"
+                      max="500"
                     />
                   </div>
                 </div>
@@ -547,9 +533,7 @@ export default function Subjects() {
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                     >
-                      <option value="WAEC">WAEC</option>
-                      <option value="NECO">NECO</option>
-                      <option value="JAMB">JAMB</option>
+                      {examTypes.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                   <div>

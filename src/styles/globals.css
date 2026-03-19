@@ -54,17 +54,42 @@
 @layer base {
   * {
     box-sizing: border-box;
+    /* Prevent double-tap zoom on interactive elements (iOS 300ms fix) */
+    touch-action: manipulation;
   }
 
   html {
     -webkit-tap-highlight-color: transparent;
-    scroll-behavior: smooth;
+    /* ── Native-app viewport lock ──────────────────────────────────
+       Prevents the page from scrolling or bouncing at the HTML level.
+       All scrolling must happen inside an explicit scroll container.
+       This stops iOS from reflowing the layout when the keyboard opens.
+    ──────────────────────────────────────────────────────────────── */
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
   }
 
   body {
     @apply bg-surface-muted text-content-primary antialiased;
     font-family: var(--font-body);
     font-feature-settings: "ss01", "ss02", "cv01", "cv02";
+    /* Lock the body to the viewport — same principle as html above.
+       position: fixed prevents iOS Safari from moving the body when
+       the virtual keyboard appears. width: 100% restores full width. */
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    position: fixed;
+    /* No horizontal drift on any device */
+    max-width: 100vw;
+  }
+
+  /* Next.js root mount — must fill 100% so fixed child pages work */
+  #__next {
+    height: 100%;
+    overflow: hidden;
   }
 
   h1, h2, h3 {
@@ -76,7 +101,7 @@
     color: #1F2A49;
   }
 
-  /* ─── Scrollbar ─────────────────────────────────────────────────── */
+  /* ─── Scrollbar (desktop only) ──────────────────────────────────── */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -95,15 +120,23 @@
     background: #1F2A49;
   }
 
-  /* ─── iOS input zoom prevention ────────────────────────────────── */
+  /* ─── iOS input zoom prevention (font-size must be ≥16px) ───────── */
   input, select, textarea {
     font-size: 16px;
+    /* Allow vertical scrolling inside text fields, block horizontal */
+    touch-action: pan-y;
   }
 
   @media (min-width: 768px) {
     input, select, textarea {
       font-size: 14px;
     }
+  }
+
+  /* ─── Buttons / links — no 300ms tap delay ──────────────────────── */
+  button, a, label, [role="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
@@ -347,9 +380,23 @@
     text-wrap: balance;
   }
 
+  /* Smooth-scrolling container for iOS — use on any div that should scroll */
+  .scroll-area {
+    overflow-y: auto;
+    /* iOS momentum scrolling */
+    -webkit-overflow-scrolling: touch;
+    /* Contain overscroll to this element — don't bubble to body */
+    overscroll-behavior-y: contain;
+    /* Prevent this container from triggering horizontal bounce */
+    overscroll-behavior-x: none;
+  }
+
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+    /* iOS momentum scroll on hidden-scrollbar containers */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
   }
 
   .hide-scrollbar::-webkit-scrollbar {
@@ -359,5 +406,14 @@
   .animate-gradient {
     background-size: 200% 200%;
     animation: gradient 8s ease infinite;
+  }
+
+  /* Full-screen page shell — every page's root wrapper should use this */
+  .page-shell {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 }
