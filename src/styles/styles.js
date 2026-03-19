@@ -88,7 +88,7 @@ export const dashboardLoadingText =
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 export const navbarContainer =
-  'sticky top-0 z-40 bg-white border-b border-border shadow-card pt-safe';
+  'fixed top-0 left-0 right-0 lg:sticky z-40 bg-white border-b border-border shadow-card pt-safe';
 export const navbarInner =
   'px-4 sm:px-6';
 export const navbarContent =

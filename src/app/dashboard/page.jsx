@@ -21,7 +21,7 @@ import ProtectedRoute from '../../components/ProtectedRoute';
 import toast from 'react-hot-toast';
 
 const dashboardContainer = "min-h-screen bg-surface-muted";
-const dashboardMain = "flex";
+const dashboardMain = "flex pt-16 lg:pt-0";
 const dashboardContent = "flex-1 min-h-screen overflow-y-auto";
 const dashboardInner = "p-4 sm:p-6 max-w-7xl mx-auto";
 const dashboardLoading = "fixed inset-0 bg-white flex items-center justify-center z-50";
