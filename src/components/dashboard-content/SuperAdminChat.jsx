@@ -5,12 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSuperAdminAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
-const chatContainer = "fixed bottom-6 right-6 z-[100]";
-const chatWindow = "absolute bottom-20 right-0 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden";
+const chatContainer = "fixed bottom-6 right-4 sm:right-6 z-[100]";
+const chatWindow = "fixed bottom-20 right-4 sm:right-6 left-4 sm:left-auto sm:w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col";
 const chatHeader = "bg-brand-primary text-white p-4 flex justify-between items-center";
 const chatHeaderTitle = "text-[16px] leading-[100%] font-[600]";
 const chatHeaderClose = "text-white hover:text-gray-200 cursor-pointer text-xl";
-const chatMessages = "h-96 overflow-y-auto p-4 space-y-4";
+const chatMessages = "flex-1 overflow-y-auto p-4 space-y-4 min-h-0";
 const chatMessage = "flex flex-col";
 const chatMessageSent = "items-end";
 const chatMessageReceived = "items-start";
@@ -24,7 +24,7 @@ const chatSendButton = "px-4 py-2 bg-brand-primary text-white rounded-md hover:b
 const notificationBadge = "absolute -top-2 -right-2 bg-red-500 text-white text-[10px] min-w-[20px] h-5 rounded-full flex items-center justify-center px-1 font-[600] animate-pulse";
 
 export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null }) {
-  const { user, fetchWithAuth } = useSuperAdminAuth();
+  const { fetchWithAuth } = useSuperAdminAuth();
   const [tickets, setTickets] = useState([]);
   const [schools, setSchools] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
@@ -37,10 +37,7 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadBySchool, setUnreadBySchool] = useState({});
   const pollingInterval = useRef(null);
-  const audioRef = useRef(null);
-
   useEffect(() => {
-    audioRef.current = new Audio('/notification.mp3');
     fetchSchools();
   }, []);
 
@@ -99,12 +96,6 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
     }
   };
 
-  const playNotification = () => {
-    if (audioRef.current) {
-      audioRef.current.play().catch(() => {});
-    }
-  };
-
   const showNotification = (ticket, message) => {
     const school = schools.find(s => s.id === ticket.schoolId);
     
@@ -156,8 +147,7 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
           if (newMessages > oldMessages) {
             const lastMessage = updatedTicket.messages[updatedTicket.messages.length - 1];
             if (lastMessage.sender === 'admin') {
-              playNotification();
-              showNotification(updatedTicket, lastMessage);
+                showNotification(updatedTicket, lastMessage);
             }
           }
 
@@ -339,10 +329,11 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
     <div className={chatContainer}>
       <AnimatePresence>
         <motion.div
-          initial={{ opacity: 0, scale: 0.8, y: 20 }}
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.8, y: 20 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
           className={chatWindow}
+          style={{ maxHeight: 'calc(100vh - 120px)' }}
         >
           <div className={chatHeader}>
             <div className="flex items-center gap-2">
@@ -404,11 +395,11 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
           )}
 
           {loading && view === 'list' ? (
-            <div className="h-96 flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center min-h-[200px]">
               <div className="w-8 h-8 spinner"></div>
             </div>
           ) : view === 'list' ? (
-            <div className="h-96 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto min-h-0">
               {filteredTickets.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-[13px] leading-[100%] font-[400] text-[#9CA3AF]">No tickets found</p>
@@ -527,7 +518,7 @@ export default function SuperAdminChat({ isOpen, onClose, initialTicketId = null
                       type="text"
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={handleKeyPress}
+                      onKeyDown={handleKeyPress}
                       placeholder="Type your reply..."
                       className={chatInputField}
                       disabled={sending}

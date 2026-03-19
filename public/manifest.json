@@ -1,9 +1,9 @@
 {
-  "name": "Mega Tech WAEC CBT - Super Admin Dashboard",
-  "short_name": "Mega Tech Super",
-  "description": "Manage schools, admins and generate reports for Kogi State Ministry of Education",
-  "theme_color": "#7C3AED",
-  "background_color": "#ffffff",
+  "name": "Einstein's CBT — Super Admin",
+  "short_name": "CBT Super Admin",
+  "description": "Manage schools, admins, students and generate reports for the Einstein's CBT platform by Mega Tech Solutions.",
+  "theme_color": "#1F2A49",
+  "background_color": "#1F2A49",
   "display": "standalone",
   "orientation": "portrait",
   "scope": "/",
@@ -36,13 +36,7 @@
       "src": "/icons/icon-144x144.png",
       "sizes": "144x144",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-152x152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/icons/icon-180x180.png",
@@ -54,7 +48,7 @@
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/icons/icon-384x384.png",
@@ -66,23 +60,7 @@
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/screenshots/superadmin-desktop.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "platform": "wide",
-      "label": "Desktop view of Mega Tech Super Admin Dashboard"
-    },
-    {
-      "src": "/screenshots/superadmin-mobile.png",
-      "sizes": "750x1334",
-      "type": "image/png",
-      "platform": "narrow",
-      "label": "Mobile view of Mega Tech Super Admin Dashboard"
+      "purpose": "any maskable"
     }
   ],
   "shortcuts": [
@@ -90,28 +68,28 @@
       "name": "Schools Management",
       "short_name": "Schools",
       "description": "Manage all registered schools",
-      "url": "/superadmin/dashboard/schools",
+      "url": "/dashboard",
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     },
     {
       "name": "Admins Management",
       "short_name": "Admins",
       "description": "Manage school administrators",
-      "url": "/superadmin/dashboard/admins",
+      "url": "/dashboard",
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     },
     {
       "name": "Generate Reports",
       "short_name": "Reports",
-      "description": "Generate ministry reports",
-      "url": "/superadmin/dashboard/reports",
+      "description": "Generate platform reports",
+      "url": "/dashboard",
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     },
     {
       "name": "Support Tickets",
       "short_name": "Support",
       "description": "Manage support tickets",
-      "url": "/superadmin/dashboard/support",
+      "url": "/dashboard",
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     }
   ]

@@ -3,7 +3,8 @@
 import '../styles/globals.css'
 import { Toaster } from 'react-hot-toast'
 import { SuperAdminAuthProvider } from '../context/AuthContext'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import PWAInstallPrompt from '../components/PWAInstallPrompt'
 
 const toastOptions = {
   style: {
@@ -54,25 +55,9 @@ const toastOptions = {
 }
 
 export default function SuperAdminLayout({ children }) {
-  const [deferredPrompt, setDeferredPrompt] = useState(null)
-
   useEffect(() => {
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault()
-      setDeferredPrompt(e)
-    })
-
-    window.addEventListener('appinstalled', () => {
-      setDeferredPrompt(null)
-    })
-
-    const handleOffline = () => {
-      console.log('Super Admin App is offline')
-    }
-    
-    const handleOnline = () => {
-      console.log('Super Admin App is online')
-    }
+    const handleOffline = () => console.log('Super Admin App is offline')
+    const handleOnline = () => console.log('Super Admin App is online')
 
     window.addEventListener('offline', handleOffline)
     window.addEventListener('online', handleOnline)
@@ -93,7 +78,7 @@ export default function SuperAdminLayout({ children }) {
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/icons/icon-180x180.png" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+        <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -116,6 +101,7 @@ export default function SuperAdminLayout({ children }) {
             }}
           />
           {children}
+          <PWAInstallPrompt />
         </SuperAdminAuthProvider>
       </body>
     </html>

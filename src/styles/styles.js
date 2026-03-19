@@ -138,9 +138,9 @@ export const navbarDropdownItemDanger =
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 export const sidebarContainer =
-  'fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-border flex flex-col';
+  'fixed inset-y-0 lg:top-16 left-0 z-50 lg:z-30 w-64 bg-white border-r border-border flex flex-col';
 export const sidebarOverlay =
-  'fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:bg-transparent lg:pointer-events-none';
+  'fixed inset-0 z-40 bg-black/40 backdrop-blur-sm';
 export const sidebarHeader =
   'flex items-center gap-3 px-5 py-4 bg-brand-navy flex-shrink-0';
 export const sidebarHeaderLogo =

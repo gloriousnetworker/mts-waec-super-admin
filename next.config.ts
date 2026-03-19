@@ -1,3 +1,5 @@
+import path from 'path'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -10,6 +12,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // Silence the multiple-lockfiles workspace root warning
+  outputFileTracingRoot: path.join(import.meta.dirname, './'),
 }
 
 export default nextConfig

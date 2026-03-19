@@ -20,18 +20,25 @@ import SuperAdminChat from '../../components/dashboard-content/SuperAdminChat';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import toast from 'react-hot-toast';
 
-const dashboardContainer = "min-h-screen bg-[#F9FAFB]";
+const dashboardContainer = "min-h-screen bg-surface-muted";
 const dashboardMain = "flex";
 const dashboardContent = "flex-1 min-h-screen overflow-y-auto";
-const dashboardInner = "max-w-7xl mx-auto px-4 py-6";
+const dashboardInner = "p-4 sm:p-6 max-w-7xl mx-auto";
 const dashboardLoading = "fixed inset-0 bg-white flex items-center justify-center z-50";
 const dashboardLoadingInner = "text-center";
-const dashboardLoadingSpinner = "w-16 h-16 border-4 border-[#039994] border-t-transparent rounded-full animate-spin mx-auto mb-4";
-const dashboardLoadingText = "text-[14px] leading-[100%] font-[500] text-[#626060] font-playfair";
+const dashboardLoadingSpinner = "w-16 h-16 border-4 border-brand-primary border-t-transparent rounded-full animate-spin mx-auto mb-4";
+const dashboardLoadingText = "text-sm text-content-secondary";
 
 function SuperAdminDashboardContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
+
+  // Open sidebar by default on desktop after mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      setSidebarOpen(true);
+    }
+  }, []);
   const [activeSection, setActiveSection] = useState('home');
   const [showChat, setShowChat] = useState(false);
   const [chatTicketId, setChatTicketId] = useState(null);
@@ -54,7 +61,7 @@ function SuperAdminDashboardContent() {
 
   const handleNavigation = (section) => {
     setActiveSection(section);
-    setSidebarOpen(false);
+    // Mobile close is handled by Sidebar's onClose prop
   };
 
   const handleOpenChat = (ticketId = null) => {
@@ -113,7 +120,7 @@ function SuperAdminDashboardContent() {
           setActiveSection={handleNavigation}
           onChatClick={() => handleOpenChat(null)}
         />
-        <main className={dashboardContent}>
+        <main className={`${dashboardContent} transition-all duration-300 ${sidebarOpen ? 'lg:pl-64' : 'lg:pl-0'}`}>
           <motion.div
             key={activeSection}
             initial={{ opacity: 0, x: 20 }}
