@@ -120,7 +120,7 @@ function SuperAdminDashboardContent() {
           setActiveSection={handleNavigation}
           onChatClick={() => handleOpenChat(null)}
         />
-        <main className={`${dashboardContent} transition-all duration-300 ${sidebarOpen ? 'lg:pl-64' : 'lg:pl-0'}`}>
+        <main className={`${dashboardContent} transition-[margin-left] duration-300 ease-in-out ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-0'}`}>
           <motion.div
             key={activeSection}
             initial={{ opacity: 0, x: 20 }}

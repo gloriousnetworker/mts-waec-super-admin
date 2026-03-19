@@ -13,7 +13,9 @@ function SettingsContent() {
   const [show2FAModal, setShow2FAModal] = useState(false);
   const [showDisable2FAModal, setShowDisable2FAModal] = useState(false);
   const [twoFAQRCode, setTwoFAQRCode] = useState('');
+  const [twoFASecret, setTwoFASecret] = useState('');
   const [twoFAToken, setTwoFAToken] = useState(['', '', '', '', '', '']);
+  const [secretCopied, setSecretCopied] = useState(false);
   const [loading2FA, setLoading2FA] = useState(false);
   const [loading, setLoading] = useState(false);
   
@@ -136,6 +138,7 @@ function SettingsContent() {
       
       if (response.ok) {
         setTwoFAQRCode(data.qrCode);
+        setTwoFASecret(data.secret || '');
         setShow2FAModal(true);
         toast.success('Scan the QR code with Google Authenticator', { id: toastId });
       } else {
@@ -168,6 +171,8 @@ function SettingsContent() {
         toast.success('2FA enabled successfully', { id: toastId });
         setShow2FAModal(false);
         setTwoFAToken(['', '', '', '', '', '']);
+        setTwoFASecret('');
+        setSecretCopied(false);
         await refreshUser();
       } else {
         toast.error(data.message || 'Invalid code', { id: toastId });
@@ -529,37 +534,74 @@ function SettingsContent() {
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="modal-container p-6 w-full mx-4 max-w-md"
+              className="modal-container p-6 w-full mx-4 max-w-md overflow-y-auto max-h-[90vh]"
             >
-              <h3 className="text-lg font-semibold text-content-primary mb-4">Setup Two-Factor Authentication</h3>
-              
-              <div className="mb-6">
-                <p className="text-[13px] text-content-secondary mb-4">
-                  Scan this QR code with Google Authenticator or Authy to enable two-factor authentication.
-                </p>
+              <h3 className="text-lg font-semibold text-content-primary mb-1">Setup Two-Factor Authentication</h3>
+              <p className="text-[12px] text-content-secondary mb-5">
+                Use Google Authenticator, Authy, or any TOTP app.
+              </p>
 
+              {/* Step 1 — QR Code */}
+              <div className="mb-4">
+                <p className="text-[11px] font-semibold text-content-secondary uppercase tracking-wider mb-3">
+                  Step 1 — Scan QR Code
+                </p>
                 {twoFAQRCode && (
-                  <div className="flex justify-center mb-4">
-                    <img src={twoFAQRCode} alt="QR Code" className="w-48 h-48" />
+                  <div className="flex justify-center p-3 bg-white border border-border rounded-lg">
+                    <img src={twoFAQRCode} alt="2FA QR Code" className="w-44 h-44" />
                   </div>
                 )}
               </div>
 
+              {/* Step 2 — Manual secret key */}
+              {twoFASecret && (
+                <div className="mb-5">
+                  <p className="text-[11px] font-semibold text-content-secondary uppercase tracking-wider mb-2">
+                    Step 2 — Or enter key manually
+                  </p>
+                  <div className="flex items-center gap-2 p-3 bg-surface-muted border border-border rounded-lg">
+                    <code className="flex-1 text-[12px] font-mono text-content-primary tracking-widest break-all select-all">
+                      {twoFASecret}
+                    </code>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(twoFASecret).then(() => {
+                          setSecretCopied(true);
+                          setTimeout(() => setSecretCopied(false), 2000);
+                        });
+                      }}
+                      className="flex-shrink-0 px-2.5 py-1.5 text-[11px] font-semibold rounded-md transition-colors"
+                      style={{
+                        background: secretCopied ? '#D1FAE5' : '#EDF0F7',
+                        color: secretCopied ? '#059669' : '#1F2A49',
+                      }}
+                    >
+                      {secretCopied ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-content-muted mt-1.5">
+                    Choose "Enter setup key" in your authenticator app and paste this key.
+                  </p>
+                </div>
+              )}
+
+              {/* Step 3 — Enter OTP */}
               <div className="mb-6">
-                <label className="block text-[12px] leading-[100%] font-[500] text-content-primary mb-3">
-                  Enter 6-digit code from authenticator
-                </label>
+                <p className="text-[11px] font-semibold text-content-secondary uppercase tracking-wider mb-3">
+                  Step 3 — Enter 6-digit code to verify
+                </p>
                 <div className="flex gap-2 justify-center">
                   {twoFAToken.map((digit, index) => (
                     <input
                       key={index}
                       id={`2fa-${index}`}
                       type="text"
+                      inputMode="numeric"
                       value={digit}
                       onChange={(e) => handle2FAChange(index, e.target.value)}
                       onKeyDown={(e) => handle2FAKeyDown(index, e)}
                       maxLength={1}
-                      className="w-12 h-12 text-center border border-border rounded-md focus:outline-none focus:border-brand-primary text-[18px] font-bold"
+                      className="w-11 h-12 text-center border border-border rounded-lg focus:outline-none focus:border-brand-primary text-[20px] font-bold"
                     />
                   ))}
                 </div>
@@ -570,6 +612,8 @@ function SettingsContent() {
                   onClick={() => {
                     setShow2FAModal(false);
                     setTwoFAToken(['', '', '', '', '', '']);
+                    setTwoFASecret('');
+                    setSecretCopied(false);
                   }}
                   className="px-4 py-2 border border-border rounded-md hover:bg-surface-subtle text-[13px]"
                 >
@@ -577,7 +621,7 @@ function SettingsContent() {
                 </button>
                 <button
                   onClick={handleVerify2FA}
-                  className="px-6 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk text-[13px]"
+                  className="px-6 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk text-[13px] font-semibold"
                 >
                   Verify & Enable
                 </button>

@@ -40,9 +40,10 @@ export default function Admins() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPlan, setFilterPlan] = useState('all');
   const [subscriptionPlans] = useState([
-    { id: 'basic',    name: 'Basic',    price: 15000 },
-    { id: 'standard', name: 'Standard', price: 35000 },
-    { id: 'premium',  name: 'Premium',  price: 60000 },
+    { id: 'monthly',   name: 'Monthly',   price: 15000, period: '/month', days: 30  },
+    { id: 'termly',    name: 'Termly',    price: 35000, period: '/term',  days: 120 },
+    { id: 'yearly',    name: 'Yearly',    price: 60000, period: '/year',  days: 365 },
+    { id: 'unlimited', name: 'Unlimited', price: 0,     period: '/year',  days: 365 },
   ]);
   const [formData, setFormData] = useState({
     name: '',
@@ -50,7 +51,7 @@ export default function Admins() {
     schoolId: '',
     password: '',
     subscription: {
-      plan: 'basic'
+      plan: 'monthly'
     }
   });
 
@@ -120,7 +121,7 @@ export default function Admins() {
           email: '',
           schoolId: '',
           password: '',
-          subscription: { plan: 'basic' }
+          subscription: { plan: 'monthly' }
         });
         fetchData();
       } else {
@@ -160,7 +161,7 @@ export default function Admins() {
           email: '',
           schoolId: '',
           password: '',
-          subscription: { plan: 'basic' }
+          subscription: { plan: 'monthly' }
         });
         fetchData();
       } else {
@@ -285,7 +286,7 @@ export default function Admins() {
     setSelectedAdmin(admin);
     setFormData(prev => ({
       ...prev,
-      subscription: admin.subscription || { plan: 'monthly' }
+      subscription: admin.subscription || { plan: 'monthly' }  // already correct key
     }));
     setShowSubscriptionModal(true);
   };
@@ -308,12 +309,16 @@ export default function Admins() {
 
   const getPlanColor = (plan) => {
     switch(plan) {
-      case 'basic':    return 'badge-brand';
-      case 'standard': return 'badge-info';
-      case 'premium':  return 'badge-gold';
-      default:         return 'badge-muted';
+      case 'monthly':   return 'badge-brand';
+      case 'termly':    return 'badge-info';
+      case 'yearly':    return 'badge-gold';
+      case 'unlimited': return 'badge-success';
+      default:          return 'badge-muted';
     }
   };
+
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 }).format(amount);
 
   const filteredAdmins = admins.filter(admin => {
     const matchesSearch = (admin.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -327,10 +332,10 @@ export default function Admins() {
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const stats = {
-    total: totalCount,
-    active: admins.filter(a => a.status === 'active').length,
-    expired: admins.filter(a => a.status === 'expired').length,
-    premium: admins.filter(a => a.subscription?.plan === 'premium').length,
+    total:     totalCount,
+    active:    admins.filter(a => a.status === 'active').length,
+    expired:   admins.filter(a => a.status === 'expired').length,
+    yearly:    admins.filter(a => ['yearly', 'unlimited'].includes(a.subscription?.plan)).length,
   };
 
   return (
@@ -367,7 +372,7 @@ export default function Admins() {
             <span className="text-[32px]">⭐</span>
             <span className={superAdminStatValue}>{stats.premium}</span>
           </div>
-          <p className={superAdminStatLabel}>Premium Plans</p>
+          <p className={superAdminStatLabel}>Yearly / Unlimited</p>
         </div>
       </div>
 
@@ -409,9 +414,10 @@ export default function Admins() {
               className="px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-brand-primary text-[13px]"
             >
               <option value="all">All Plans</option>
-              <option value="basic">Basic</option>
-              <option value="standard">Standard</option>
-              <option value="premium">Premium</option>
+              <option value="monthly">Monthly</option>
+              <option value="termly">Termly</option>
+              <option value="yearly">Yearly</option>
+              <option value="unlimited">Unlimited</option>
             </select>
             <button
               onClick={() => setShowCreateModal(true)}
@@ -634,7 +640,9 @@ export default function Admins() {
                     className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                   >
                     {subscriptionPlans.map(plan => (
-                      <option key={plan.id} value={plan.id}>{plan.name} — ₦{plan.price.toLocaleString()}</option>
+                      <option key={plan.id} value={plan.id}>
+                        {plan.name}{plan.price > 0 ? ` — ${formatCurrency(plan.price)}${plan.period}` : ' — Custom pricing'}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -704,7 +712,9 @@ export default function Admins() {
                     className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                   >
                     {subscriptionPlans.map(plan => (
-                      <option key={plan.id} value={plan.id}>{plan.name}</option>
+                      <option key={plan.id} value={plan.id}>
+                        {plan.name}{plan.price > 0 ? ` — ${formatCurrency(plan.price)}${plan.period}` : ' — Custom pricing'}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -764,7 +774,9 @@ export default function Admins() {
                     className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary text-[13px]"
                   >
                     {subscriptionPlans.map(plan => (
-                      <option key={plan.id} value={plan.id}>{plan.name} - ₦{plan.price.toLocaleString()}</option>
+                      <option key={plan.id} value={plan.id}>
+                        {plan.name}{plan.price > 0 ? ` — ${formatCurrency(plan.price)}${plan.period}` : ' — Custom pricing'}
+                      </option>
                     ))}
                   </select>
                 </div>

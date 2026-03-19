@@ -62,6 +62,9 @@
     /* Prevent horizontal bounce/scroll — vertical scroll stays normal */
     overflow-x: hidden;
     overscroll-behavior-x: none;
+    /* Prevent font size inflation when rotating on iOS */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
@@ -71,6 +74,16 @@
     /* Prevent horizontal drift on mobile — vertical scrolling works normally */
     overflow-x: hidden;
     overscroll-behavior-x: none;
+    /* Safe area insets for iPhone notch / Dynamic Island / home bar */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* PWA standalone mode — add status bar clearance */
+  @media (display-mode: standalone) {
+    body {
+      padding-top: env(safe-area-inset-top);
+    }
   }
 
   h1, h2, h3 {

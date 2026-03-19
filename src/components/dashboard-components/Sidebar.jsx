@@ -1,7 +1,7 @@
 // components/dashboard-components/Sidebar.jsx
 'use client';
 import { useSuperAdminAuth } from '../../context/AuthContext';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import {
@@ -71,25 +71,19 @@ export default function SuperAdminSidebar({ isOpen, onClose, activeSection, setA
 
   return (
     <>
-      {/* Mobile overlay */}
-      <AnimatePresence>
-        {isOpen && isMobile && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
-          />
-        )}
-      </AnimatePresence>
+      {/* Mobile overlay — CSS opacity transition, no Framer Motion needed */}
+      <div
+        onClick={onClose}
+        className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
+          isOpen && isMobile ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      />
 
-      {/* Sidebar panel */}
-      <motion.aside
-        initial={false}
-        animate={{ x: isOpen ? 0 : -280 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="fixed inset-y-0 lg:top-16 left-0 z-50 lg:z-30 w-64 flex flex-col"
+      {/* Sidebar panel — CSS transform (GPU-accelerated, no JS animation) */}
+      <aside
+        className={`fixed inset-y-0 lg:top-16 left-0 z-50 lg:z-30 w-64 flex flex-col transition-transform duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:translate-x-0`}
         style={{ background: 'linear-gradient(180deg, #1F2A49 0%, #141C33 100%)' }}
       >
         {/* Top gradient accent bar */}
@@ -286,7 +280,7 @@ export default function SuperAdminSidebar({ isOpen, onClose, activeSection, setA
             </button>
           </div>
         </div>
-      </motion.aside>
+      </aside>
     </>
   );
 }
