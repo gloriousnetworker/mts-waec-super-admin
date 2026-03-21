@@ -95,9 +95,19 @@ export default function SuperAdminLayout({ children }) {
         <script src="/sw-register.js" defer></script>
       </head>
       <body className="bg-surface-muted min-h-screen font-inter antialiased">
+        {/* Global logo watermark — sits behind every page */}
+        <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center">
+          <img
+            src="/logo.png"
+            alt=""
+            aria-hidden="true"
+            className="w-[70vw] max-w-sm sm:max-w-md object-contain select-none"
+            style={{ opacity: 0.04 }}
+          />
+        </div>
         <SuperAdminAuthProvider>
-          <Toaster 
-            position="top-center" 
+          <Toaster
+            position="top-center"
             toastOptions={toastOptions}
             containerStyle={{
               top: 20,
