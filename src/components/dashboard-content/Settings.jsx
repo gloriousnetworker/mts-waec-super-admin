@@ -15,6 +15,7 @@ function SettingsContent() {
   const [twoFAQRCode, setTwoFAQRCode] = useState('');
   const [twoFASecret, setTwoFASecret] = useState('');
   const [twoFAToken, setTwoFAToken] = useState(['', '', '', '', '', '']);
+  const [disableToken, setDisableToken] = useState(['', '', '', '', '', '']);
   const [secretCopied, setSecretCopied] = useState(false);
   const [loading2FA, setLoading2FA] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -184,17 +185,22 @@ function SettingsContent() {
   };
 
   const handleDisable2FA = async () => {
+    const token = disableToken.join('');
+    if (token.length !== 6) {
+      toast.error('Please enter your 6-digit authenticator code');
+      return;
+    }
     const toastId = toast.loading('Disabling 2FA...');
     try {
       const response = await fetchWithAuth('/auth/disable-2fa', {
-        method: 'POST'
+        method: 'POST',
+        body: JSON.stringify({ token })
       });
-      
       const data = await response.json();
-      
       if (response.ok) {
         toast.success('2FA disabled successfully', { id: toastId });
         setShowDisable2FAModal(false);
+        setDisableToken(['', '', '', '', '', '']);
         await refreshUser();
       } else {
         toast.error(data.message || 'Failed to disable 2FA', { id: toastId });
@@ -644,12 +650,41 @@ function SettingsContent() {
               className="modal-container p-6 w-full mx-4 max-w-md"
             >
               <h3 className="text-lg font-semibold text-content-primary mb-2">Disable Two-Factor Authentication</h3>
-              <p className="text-[13px] text-content-secondary mb-6">
+              <p className="text-[13px] text-content-secondary mb-4">
                 Are you sure you want to disable 2FA? This will make your account less secure.
               </p>
+              <p className="text-xs text-content-secondary mb-3">
+                Enter the 6-digit code from your authenticator app to confirm:
+              </p>
+              <div className="flex gap-2 justify-center mb-6">
+                {disableToken.map((digit, i) => (
+                  <input
+                    key={i}
+                    id={`disable-2fa-${i}`}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (isNaN(val)) return;
+                      const updated = [...disableToken];
+                      updated[i] = val.slice(-1);
+                      setDisableToken(updated);
+                      if (val && i < 5) document.getElementById(`disable-2fa-${i + 1}`)?.focus();
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Backspace' && !disableToken[i] && i > 0) {
+                        document.getElementById(`disable-2fa-${i - 1}`)?.focus();
+                      }
+                    }}
+                    className="w-10 h-12 text-center text-lg font-bold border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  />
+                ))}
+              </div>
               <div className="flex justify-end gap-3">
                 <button
-                  onClick={() => setShowDisable2FAModal(false)}
+                  onClick={() => { setShowDisable2FAModal(false); setDisableToken(['', '', '', '', '', '']); }}
                   className="px-4 py-2 border border-border rounded-md hover:bg-surface-subtle text-[13px]"
                 >
                   Cancel
