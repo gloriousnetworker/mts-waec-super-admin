@@ -106,6 +106,16 @@ function SuperAdminDashboardContent() {
 
   return (
     <div className={dashboardContainer}>
+      {/* Logo watermark — absolute inside the fixed dashboard shell */}
+      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+        <img
+          src="/logo.png"
+          alt=""
+          aria-hidden="true"
+          className="w-[70vw] max-w-xs sm:max-w-sm object-contain select-none"
+          style={{ opacity: 0.06 }}
+        />
+      </div>
       <SuperAdminNavbar
         activeSection={activeSection}
         setActiveSection={handleNavigation}

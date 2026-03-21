@@ -102,7 +102,7 @@ export default function SuperAdminLayout({ children }) {
             alt=""
             aria-hidden="true"
             className="w-[70vw] max-w-sm sm:max-w-md object-contain select-none"
-            style={{ opacity: 0.04 }}
+            style={{ opacity: 0.06 }}
           />
         </div>
         <SuperAdminAuthProvider>
