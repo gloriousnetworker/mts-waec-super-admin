@@ -1,6 +1,6 @@
 // components/dashboard-content/Admins.jsx
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSuperAdminAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -45,6 +45,12 @@ export default function Admins() {
     { id: 'yearly',    name: 'Yearly',    price: 60000, period: '/year',  days: 365 },
     { id: 'unlimited', name: 'Unlimited', price: 0,     period: '/year',  days: 365 },
   ]);
+  // Drill-down state
+  const [drillDownAdmin, setDrillDownAdmin] = useState(null);
+  const [drillDownData, setDrillDownData] = useState(null);
+  const [drillDownLoading, setDrillDownLoading] = useState(false);
+  const [drillDownStudentSearch, setDrillDownStudentSearch] = useState('');
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -291,6 +297,49 @@ export default function Admins() {
     setShowSubscriptionModal(true);
   };
 
+  const openDrillDown = useCallback(async (admin) => {
+    setDrillDownAdmin(admin);
+    setDrillDownData(null);
+    setDrillDownLoading(true);
+    setDrillDownStudentSearch('');
+    try {
+      const res = await fetchWithAuth(`/super-admin/admins/${admin.id}/drill-down`);
+      if (res.ok) {
+        const data = await res.json();
+        setDrillDownData(data);
+      } else {
+        toast.error('Failed to load admin details');
+      }
+    } catch {
+      toast.error('Network error');
+    } finally {
+      setDrillDownLoading(false);
+    }
+  }, [fetchWithAuth]);
+
+  const exportCSV = useCallback(() => {
+    if (!drillDownData) return;
+    const rows = [
+      ['First Name', 'Last Name', 'Class', 'Login ID', 'Status', 'Exams Taken', 'Avg Score (%)'],
+      ...drillDownData.students.map(s => [
+        s.firstName, s.lastName, s.class, s.loginId, s.status,
+        s.examCount, s.avgScore ?? 'N/A',
+      ]),
+    ];
+    const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${drillDownAdmin?.name?.replace(/\s+/g, '_') || 'admin'}_students.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [drillDownData, drillDownAdmin]);
+
+  const printReport = useCallback(() => {
+    window.print();
+  }, []);
+
   const formatDate = (timestamp) => {
     if (!timestamp) return 'N/A';
     if (timestamp._seconds) {
@@ -506,6 +555,13 @@ export default function Admins() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
+                        <button
+                          onClick={() => openDrillDown(admin)}
+                          className="p-2 text-[#6366F1] hover:bg-[#EEF2FF] rounded-md transition-colors"
+                          title="View Students & Performance"
+                        >
+                          👁
+                        </button>
                         <button
                           onClick={() => openSubscriptionModal(admin)}
                           className="p-2 text-[#10B981] hover:bg-[#D1FAE5] rounded-md transition-colors"
@@ -804,6 +860,181 @@ export default function Admins() {
                 >
                   Cancel
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* ── FEAT-3: Drill-Down Modal ── */}
+        {drillDownAdmin && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={modalOverlay}
+            onClick={() => setDrillDownAdmin(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-xl w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface-muted print:hidden">
+                <div>
+                  <h3 className="text-[16px] font-[700] text-content-primary">{drillDownAdmin.name}</h3>
+                  <p className="text-[12px] text-content-secondary mt-0.5">{drillDownAdmin.email}</p>
+                </div>
+                <div className="flex gap-2 items-center">
+                  <button
+                    onClick={exportCSV}
+                    disabled={!drillDownData}
+                    className="px-3 py-1.5 text-[12px] font-[600] bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-40 transition-colors"
+                    title="Export student list as CSV"
+                  >
+                    ⬇ CSV
+                  </button>
+                  <button
+                    onClick={printReport}
+                    disabled={!drillDownData}
+                    className="px-3 py-1.5 text-[12px] font-[600] bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dk disabled:opacity-40 transition-colors"
+                    title="Print / Save as PDF"
+                  >
+                    🖨 PDF
+                  </button>
+                  <button
+                    onClick={() => setDrillDownAdmin(null)}
+                    className="p-2 hover:bg-surface-subtle rounded-lg transition-colors text-content-secondary"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="overflow-y-auto flex-1 p-6 space-y-6">
+                {drillDownLoading ? (
+                  <div className="py-20 text-center">
+                    <div className="spinner mx-auto mb-3" />
+                    <p className="text-[14px] text-content-secondary">Loading admin details...</p>
+                  </div>
+                ) : drillDownData ? (
+                  <>
+                    {/* Stat Cards */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      {[
+                        { label: 'Students', value: drillDownData.stats.studentCount, icon: '👥' },
+                        { label: 'Exams Taken', value: drillDownData.stats.totalExams, icon: '📝' },
+                        { label: 'Avg Score', value: drillDownData.stats.avgScore != null ? `${drillDownData.stats.avgScore}%` : 'N/A', icon: '📊' },
+                        { label: 'Pass Rate', value: drillDownData.stats.passRate != null ? `${drillDownData.stats.passRate}%` : 'N/A', icon: '✅' },
+                      ].map(card => (
+                        <div key={card.label} className={superAdminStatCard}>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[28px]">{card.icon}</span>
+                            <span className={superAdminStatValue}>{card.value}</span>
+                          </div>
+                          <p className={superAdminStatLabel}>{card.label}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Students Table */}
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-[14px] font-[700] text-content-primary">Students ({drillDownData.students.length})</h4>
+                        <input
+                          type="text"
+                          placeholder="Search students..."
+                          value={drillDownStudentSearch}
+                          onChange={e => setDrillDownStudentSearch(e.target.value)}
+                          className="px-3 py-1.5 text-[12px] border border-border rounded-lg focus:outline-none focus:border-brand-primary w-48"
+                        />
+                      </div>
+                      <div className="border border-border rounded-lg overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-[13px]">
+                            <thead className="bg-surface-muted">
+                              <tr>
+                                {['Name', 'Class', 'Login ID', 'Status', 'Exams', 'Avg Score', 'Last Exam'].map(h => (
+                                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-[600] text-content-secondary uppercase tracking-wider whitespace-nowrap">{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                              {drillDownData.students
+                                .filter(s => {
+                                  const q = drillDownStudentSearch.toLowerCase();
+                                  return !q || `${s.firstName} ${s.lastName}`.toLowerCase().includes(q) || (s.loginId || '').toLowerCase().includes(q);
+                                })
+                                .map(s => (
+                                  <tr key={s.id} className="hover:bg-surface-subtle transition-colors">
+                                    <td className="px-4 py-2.5 font-[500] text-content-primary whitespace-nowrap">{s.firstName} {s.lastName}</td>
+                                    <td className="px-4 py-2.5 text-content-secondary">{s.class || 'N/A'}</td>
+                                    <td className="px-4 py-2.5 text-content-secondary font-mono text-[11px]">{s.loginId || 'N/A'}</td>
+                                    <td className="px-4 py-2.5">
+                                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-[500] ${s.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                        {s.status || 'N/A'}
+                                      </span>
+                                    </td>
+                                    <td className="px-4 py-2.5 text-center text-content-secondary">{s.examCount}</td>
+                                    <td className="px-4 py-2.5 text-center">
+                                      {s.avgScore != null ? (
+                                        <span className={`font-[600] ${s.avgScore >= 50 ? 'text-green-600' : 'text-red-500'}`}>{s.avgScore}%</span>
+                                      ) : <span className="text-content-muted">—</span>}
+                                    </td>
+                                    <td className="px-4 py-2.5 text-content-secondary text-[11px] whitespace-nowrap">
+                                      {s.lastExamAt ? formatDate(s.lastExamAt) : '—'}
+                                    </td>
+                                  </tr>
+                                ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        {drillDownData.students.length === 0 && (
+                          <p className="text-center py-8 text-[13px] text-content-muted">No students found for this school</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Recent Exams */}
+                    {drillDownData.recentExams.length > 0 && (
+                      <div>
+                        <h4 className="text-[14px] font-[700] text-content-primary mb-3">Recent Exams (last 10)</h4>
+                        <div className="border border-border rounded-lg overflow-hidden">
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-[13px]">
+                              <thead className="bg-surface-muted">
+                                <tr>
+                                  {['Subject', 'Score', 'Percentage', 'Date'].map(h => (
+                                    <th key={h} className="px-4 py-2.5 text-left text-[11px] font-[600] text-content-secondary uppercase tracking-wider">{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-border">
+                                {drillDownData.recentExams.map(e => (
+                                  <tr key={e.id} className="hover:bg-surface-subtle transition-colors">
+                                    <td className="px-4 py-2.5 font-[500] text-content-primary">{e.subject}</td>
+                                    <td className="px-4 py-2.5 text-content-secondary">{e.score}/{e.totalMarks}</td>
+                                    <td className="px-4 py-2.5">
+                                      <span className={`font-[600] ${e.percentage >= 50 ? 'text-green-600' : 'text-red-500'}`}>{e.percentage}%</span>
+                                    </td>
+                                    <td className="px-4 py-2.5 text-content-secondary text-[11px]">{formatDate(e.submittedAt)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="py-20 text-center">
+                    <p className="text-[14px] text-content-muted">No data available</p>
+                  </div>
+                )}
               </div>
             </motion.div>
           </motion.div>
