@@ -72,9 +72,9 @@ module.exports = {
 
       // ─── Font Families ────────────────────────────────────────────────
       fontFamily: {
-        inter:    ['Inter', 'sans-serif'],
-        playfair: ['"Playfair Display"', 'serif'],
-        mono:     ['"JetBrains Mono"', 'monospace'],
+        inter:    ['var(--font-inter)', 'sans-serif'],
+        playfair: ['var(--font-playfair)', 'serif'],
+        mono:     ['var(--font-mono)', 'monospace'],
       },
 
       // ─── Font Size Scale ──────────────────────────────────────────────
