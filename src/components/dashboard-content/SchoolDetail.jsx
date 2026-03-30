@@ -66,42 +66,86 @@ export default function SchoolDetail({ schoolId, schoolName, onBack }) {
   const exportAllResultsPDF = () => {
     if (!data) return;
     const title = data.school.name;
-    const date = new Date().toLocaleDateString();
-    let html = `<!DOCTYPE html><html><head><title>${title} — Results</title>
-    <style>body{font-family:Arial,sans-serif;margin:32px}h1,h2{color:#1F2A49}
-    table{width:100%;border-collapse:collapse;margin:16px 0;font-size:11px}
-    th{background:#1F2A49;color:#fff;padding:8px;text-align:left}
-    td{padding:7px;border-bottom:1px solid #ddd}tr:nth-child(even){background:#f9f9f9}
-    .badge{padding:2px 6px;border-radius:4px;font-weight:bold}
-    .g{background:#d1fae5;color:#059669}.y{background:#fef3c7;color:#d97706}.r{background:#fee2e2;color:#dc2626}
-    </style></head><body>
-    <h1>${title}</h1><p>Exported: ${date}</p>
-    <table><tr><th>Stat</th><th>Value</th></tr>
-    <tr><td>Students</td><td>${data.stats.totalStudents}</td></tr>
-    <tr><td>Exams</td><td>${data.stats.totalExamSetups}</td></tr>
-    <tr><td>Avg Score</td><td>${data.stats.avgScore}%</td></tr>
-    <tr><td>Pass Rate</td><td>${data.stats.passRate}%</td></tr>
-    <tr><td>Distinction</td><td>${data.stats.distinctionRate}%</td></tr>
-    </table>`;
+    const date = new Date().toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
+
+    let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title} — Results</title>
+<style>
+  @page { size: A4 landscape; margin: 12mm 14mm; }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #1a1a1a; margin: 0; }
+  h1 { font-size: 15pt; color: #1F2A49; margin: 0 0 2px; }
+  h2 { font-size: 10pt; color: #1F2A49; margin: 14px 0 4px; page-break-before: auto; }
+  h2:first-of-type { page-break-before: avoid; }
+  .meta { font-size: 8pt; color: #666; margin-bottom: 10px; }
+  .stats { display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+  .stat { background: #f0f4ff; border-radius: 6px; padding: 6px 10px; }
+  .stat-val { font-size: 13pt; font-weight: bold; color: #1F2A49; }
+  .stat-lbl { font-size: 7pt; color: #555; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 8pt; table-layout: auto; }
+  thead th { background: #1F2A49; color: #fff; padding: 5px 6px; text-align: left; white-space: nowrap; font-weight: 600; }
+  tbody td { padding: 4px 6px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
+  tbody tr:nth-child(even) { background: #f9fafb; }
+  .badge { display: inline-block; padding: 1px 5px; border-radius: 3px; font-weight: bold; font-size: 7.5pt; white-space: nowrap; }
+  .g { background: #d1fae5; color: #059669; }
+  .y { background: #fef3c7; color: #d97706; }
+  .r { background: #fee2e2; color: #dc2626; }
+  .sub-score { font-size: 7pt; color: #666; display: block; }
+  .divider { border: none; border-top: 1.5px solid #1F2A49; margin: 10px 0 4px; }
+  @media print {
+    h2 { page-break-before: always; }
+    h2:first-of-type { page-break-before: avoid; }
+    table { page-break-inside: auto; }
+    tr { page-break-inside: avoid; page-break-after: auto; }
+    thead { display: table-header-group; }
+  }
+</style></head><body>
+<h1>${title}</h1>
+<p class="meta">Generated: ${date} &nbsp;|&nbsp; Einstein's CBT — Mega Tech Solutions</p>
+<div class="stats">
+  <div class="stat"><div class="stat-val">${data.stats.totalStudents}</div><div class="stat-lbl">Students</div></div>
+  <div class="stat"><div class="stat-val">${data.stats.totalExamSetups}</div><div class="stat-lbl">Exams</div></div>
+  <div class="stat"><div class="stat-val">${data.stats.completedSubmissions}</div><div class="stat-lbl">Submissions</div></div>
+  <div class="stat"><div class="stat-val">${data.stats.avgScore}%</div><div class="stat-lbl">Avg Score</div></div>
+  <div class="stat"><div class="stat-val">${data.stats.passRate}%</div><div class="stat-lbl">Pass Rate</div></div>
+  <div class="stat"><div class="stat-val">${data.stats.distinctionRate}%</div><div class="stat-lbl">Distinction</div></div>
+</div>
+<hr class="divider">`;
 
     for (const exam of data.exams || []) {
       if (!exam.results?.length) continue;
-      const subjects = exam.subjects?.filter(s => s.subjectId && s.subjectName) || [];
-      html += `<h2>${exam.title} (${exam.class})</h2>
-      <table><thead><tr><th>Student</th><th>Class</th>
-      ${subjects.map(s => `<th>${s.subjectName}</th>`).join('')}
-      <th>Total</th><th>Date</th></tr></thead><tbody>`;
-      for (const r of exam.results) {
-        const pc = r.percentage >= 75 ? 'g' : r.percentage >= 50 ? 'y' : 'r';
-        html += `<tr><td>${r.studentName}</td><td>${r.studentClass}</td>
-        ${subjects.map(s => { const sb = (r.subjectBreakdown || []).find(x => x.subjectId === s.subjectId); return sb ? `<td><span class="badge ${sb.percentage >= 75 ? 'g' : sb.percentage >= 50 ? 'y' : 'r'}">${sb.percentage}%</span> ${sb.score}/${sb.totalMarks}</td>` : '<td>—</td>'; }).join('')}
-        <td><span class="badge ${pc}">${r.percentage || 0}%</span></td>
-        <td>${fmtDate(r.submittedAt)}</td></tr>`;
-      }
+      const subjects = (exam.subjects || []).filter(s => s.subjectId && s.subjectName);
+      html += `<h2>${exam.title} &nbsp;<span style="font-weight:normal;color:#555">Class ${exam.class} &nbsp;·&nbsp; ${exam.submittedCount} submitted &nbsp;·&nbsp; Avg ${exam.avgScore}%</span></h2>
+<table><thead><tr>
+  <th>#</th><th>Student</th><th>Class</th>
+  ${subjects.map(s => `<th>${s.subjectName}</th>`).join('')}
+  <th>Total</th><th>Correct</th><th>Wrong</th><th>Date</th>
+</tr></thead><tbody>`;
+      exam.results.forEach((r, idx) => {
+        const pc = (r.percentage || 0) >= 75 ? 'g' : (r.percentage || 0) >= 50 ? 'y' : 'r';
+        html += `<tr>
+  <td style="color:#999">${idx + 1}</td>
+  <td style="font-weight:600">${r.studentName || '—'}</td>
+  <td>${r.studentClass || '—'}</td>
+  ${subjects.map(s => {
+    const sb = (r.subjectBreakdown || []).find(x => x.subjectId === s.subjectId);
+    if (!sb) return '<td style="color:#aaa">—</td>';
+    const cls = sb.percentage >= 75 ? 'g' : sb.percentage >= 50 ? 'y' : 'r';
+    return `<td><span class="badge ${cls}">${sb.percentage}%</span><span class="sub-score">${sb.score}/${sb.totalMarks} &nbsp;✓${sb.correct} ✗${sb.wrong}</span></td>`;
+  }).join('')}
+  <td><span class="badge ${pc}">${r.percentage || 0}%</span><span class="sub-score">${r.score || 0}/${r.totalMarks || 0}</span></td>
+  <td style="color:#059669;font-weight:600">${r.correctAnswers || 0}</td>
+  <td style="color:#dc2626;font-weight:600">${r.wrongAnswers || 0}</td>
+  <td style="color:#888;white-space:nowrap">${fmtDate(r.submittedAt)}</td>
+</tr>`;
+      });
       html += '</tbody></table>';
     }
-    html += '<script>window.onload=()=>window.print()</script></body></html>';
-    const w = window.open('', '_blank'); w.document.write(html); w.document.close();
+
+    html += `<script>window.addEventListener('load', () => { setTimeout(() => window.print(), 400); });</script></body></html>`;
+    const w = window.open('', '_blank');
+    if (!w) return toast.error('Allow pop-ups to export PDF');
+    w.document.write(html);
+    w.document.close();
   };
 
   if (loading) return (
