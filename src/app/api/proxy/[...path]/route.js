@@ -28,7 +28,15 @@ async function handleRequest(request, context) {
   // ── Build headers to forward to the backend ──────────────────────────────
   const forwardHeaders = new Headers();
   forwardHeaders.set('accept', 'application/json');
-  forwardHeaders.set('content-type', 'application/json');
+
+  // Forward the original Content-Type so multipart/form-data (file uploads)
+  // arrive at the backend with the correct boundary — never hardcode JSON here.
+  const incomingContentType = request.headers.get('content-type');
+  if (incomingContentType) {
+    forwardHeaders.set('content-type', incomingContentType);
+  } else if (request.method !== 'GET' && request.method !== 'HEAD') {
+    forwardHeaders.set('content-type', 'application/json');
+  }
 
   // Forward the browser's cookies so the backend can read the session
   const cookie = request.headers.get('cookie');
@@ -44,9 +52,10 @@ async function handleRequest(request, context) {
   if (ip) forwardHeaders.set('x-forwarded-for', ip);
 
   // ── Read request body for non-GET requests ───────────────────────────────
+  // Use arrayBuffer for binary-safe forwarding (multipart file uploads).
   let body;
   if (request.method !== 'GET' && request.method !== 'HEAD') {
-    body = await request.text();
+    body = await request.arrayBuffer();
   }
 
   // ── Call the real backend (server-to-server — no browser ITP) ───────────
