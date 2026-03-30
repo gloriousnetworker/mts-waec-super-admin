@@ -47,7 +47,7 @@ export default function SuperAdminNavbar({ activeSection, setActiveSection, onMe
   const dropdownRef = useRef(null);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const notifRef = useRef(null);
-  const { notifications, unreadCount, permissionState, requestPermission, markRead, markAllRead } = useNotifications(fetchWithAuth, '/super-admin');
+  const { notifications, unreadCount, permissionState, requestPermission, markRead, markAllRead } = useNotifications(fetchWithAuth, '/super-admin', user?.id);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
