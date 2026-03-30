@@ -18,6 +18,7 @@ import {
   LogOut,
   MessageSquare,
   ChevronRight,
+  Activity as ActivityIcon,
 } from 'lucide-react';
 
 const navGroups = [
@@ -41,6 +42,7 @@ const navGroups = [
     items: [
       { icon: FileBarChart2,   label: 'Reports',   id: 'reports'   },
       { icon: BarChart3,       label: 'Analytics', id: 'analytics' },
+      { icon: ActivityIcon,    label: 'Activity',  id: 'activity'  },
     ],
   },
   {

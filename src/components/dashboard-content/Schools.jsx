@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSuperAdminAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import { School, CheckCircle, GraduationCap, Pencil, Trash2, Search, Plus } from 'lucide-react';
+import { School, CheckCircle, GraduationCap, Pencil, Trash2, Search, Plus, ExternalLink } from 'lucide-react';
+import SchoolDetail from './SchoolDetail';
 import {
   examsContainer,
   examsHeader,
@@ -28,6 +29,7 @@ export default function Schools() {
   const { fetchWithAuth } = useSuperAdminAuth();
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [detailSchool, setDetailSchool] = useState(null); // { id, name }
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -211,6 +213,19 @@ export default function Schools() {
     totalStudents: schools.reduce((sum, s) => sum + (s.studentCount || 0), 0)
   };
 
+  // ── School detail drill-down ──────────────────────────────────────────────
+  if (detailSchool) {
+    return (
+      <div className={examsContainer}>
+        <SchoolDetail
+          schoolId={detailSchool.id}
+          schoolName={detailSchool.name}
+          onBack={() => setDetailSchool(null)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={examsContainer}>
       <div className={examsHeader}>
@@ -313,6 +328,9 @@ export default function Schools() {
                     </td>
                     <td className="table-cell">
                       <div className="flex gap-1">
+                        <button onClick={() => setDetailSchool({ id: school.id, name: school.name })} className="action-btn-edit" aria-label="View Details" title="View Details">
+                          <ExternalLink size={15} strokeWidth={2} />
+                        </button>
                         <button onClick={() => openEditModal(school)} className="action-btn-edit" aria-label="Edit">
                           <Pencil size={15} strokeWidth={2} />
                         </button>
